@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Flame, ArrowRight, Activity, ShieldCheck, EyeOff, Scale } from "lucide-react";
+import dontDrinkSticker from "@/assets/no-drink-drive-sticker.png";
 import { motion } from "framer-motion";
 
 export function Home() {
@@ -91,7 +92,16 @@ export function Home() {
       </section>
 
       {/* Privacy Disclaimer */}
-      <section className="rounded-3xl border border-accent/20 bg-accent/5 p-8 md:p-12">
+      <section className="relative rounded-3xl border border-accent/20 bg-accent/5 p-8 md:p-12 overflow-visible">
+        {/* Sticker — floats top-right, slightly rotated */}
+        <div className="absolute -top-10 right-6 md:right-12 z-10 pointer-events-none select-none">
+          <img
+            src={dontDrinkSticker}
+            alt="Don't Drink & Drive"
+            className="w-32 md:w-40 drop-shadow-[0_0_18px_rgba(255,45,120,0.5)]"
+            style={{ transform: "rotate(8deg)" }}
+          />
+        </div>
         <div className="flex items-center gap-3 mb-6">
           <ShieldCheck className="w-7 h-7 text-accent shrink-0" />
           <h2 className="text-2xl font-black uppercase tracking-tight text-accent">100% Anonymous Tallying</h2>
