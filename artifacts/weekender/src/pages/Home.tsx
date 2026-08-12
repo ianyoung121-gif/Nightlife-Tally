@@ -4,7 +4,7 @@ import { DrinkCard } from "@/components/DrinkCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Flame, ArrowRight, Activity } from "lucide-react";
+import { Flame, ArrowRight, Activity, ShieldCheck, EyeOff, Scale } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function Home() {
@@ -88,6 +88,44 @@ export function Home() {
             ))}
           </motion.div>
         )}
+      </section>
+
+      {/* Privacy Disclaimer */}
+      <section className="rounded-3xl border border-accent/20 bg-accent/5 p-8 md:p-12">
+        <div className="flex items-center gap-3 mb-6">
+          <ShieldCheck className="w-7 h-7 text-accent shrink-0" />
+          <h2 className="text-2xl font-black uppercase tracking-tight text-accent">100% Anonymous Tallying</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="flex flex-col gap-3 bg-background/60 rounded-xl p-5 border border-accent/10">
+            <EyeOff className="w-6 h-6 text-accent" />
+            <p className="font-bold uppercase text-white text-sm tracking-wide">No drinking records</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Tallies are anonymous crowd-votes. The app never logs which drinks you personally tapped — only the total count changes.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 bg-background/60 rounded-xl p-5 border border-accent/10">
+            <ShieldCheck className="w-6 h-6 text-accent" />
+            <p className="font-bold uppercase text-white text-sm tracking-wide">No personal data stored</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              There is no database record connecting your account to any drink, bar visit, or timestamp. Nothing to subpoena, nothing to disclose.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 bg-background/60 rounded-xl p-5 border border-accent/10">
+            <Scale className="w-6 h-6 text-accent" />
+            <p className="font-bold uppercase text-white text-sm tracking-wide">Built privacy-first</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              The Weekender was designed from day one so that your activity on the app can never be used as evidence of personal alcohol consumption.
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground font-mono border-t border-accent/10 pt-5 leading-relaxed">
+          <span className="text-accent font-bold">DISCLAIMER: </span>
+          The Weekender is a crowd-sourced popularity tracker for local nightlife — not a personal consumption log. 
+          No personally identifiable information is linked to any drink tally. 
+          The app stores only your followed bars and account preferences. 
+          Tally actions are stateless and anonymous. Use responsibly. Drink responsibly.
+        </p>
       </section>
 
       {/* Global Trending Drinks */}

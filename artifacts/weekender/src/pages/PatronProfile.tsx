@@ -1,16 +1,12 @@
 import { 
   useGetUser, 
-  useGetUserFollowing, 
-  useGetUserActivity,
+  useGetUserFollowing,
   getGetUserQueryKey,
   getGetUserFollowingQueryKey,
-  getGetUserActivityQueryKey
 } from "@workspace/api-client-react";
 import { BarCard } from "@/components/BarCard";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
-import { User as UserIcon, Flame, Clock, Heart } from "lucide-react";
+import { User as UserIcon, Heart, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function PatronProfile() {
@@ -18,16 +14,6 @@ export function PatronProfile() {
   
   const { data: user, isLoading: loadingUser } = useGetUser(userId, { query: { enabled: true, queryKey: getGetUserQueryKey(userId) } });
   const { data: following, isLoading: loadingFollowing } = useGetUserFollowing(userId, { query: { enabled: true, queryKey: getGetUserFollowingQueryKey(userId) } });
-  const { data: activity, isLoading: loadingActivity } = useGetUserActivity(userId, { query: { enabled: true, queryKey: getGetUserActivityQueryKey(userId) } });
-
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
-  };
 
   if (loadingUser) {
     return <div className="p-8"><Skeleton className="h-32 w-full rounded-xl max-w-2xl mx-auto" /></div>;
@@ -52,81 +38,54 @@ export function PatronProfile() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Activity Feed */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center gap-2 mb-4 border-b border-border/50 pb-4">
-            <Clock className="w-5 h-5 text-accent" />
-            <h2 className="text-2xl font-black uppercase tracking-tight">Recent Tallies</h2>
-          </div>
+      {/* Privacy notice */}
+      <div className="flex items-start gap-4 p-5 rounded-2xl border border-accent/20 bg-accent/5">
+        <ShieldCheck className="w-6 h-6 text-accent shrink-0 mt-0.5" />
+        <div>
+          <p className="font-bold text-accent uppercase tracking-wide text-sm">Your tallies are private</p>
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+            The Weekender never records which drinks you personally tally. Tallies are anonymous crowd-votes — only aggregate counts are stored. There is no log linking your account to any specific drink or bar visit.
+          </p>
+        </div>
+      </div>
 
-          {loadingActivity ? (
-            <div className="space-y-4">
-               {[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
-            </div>
-          ) : !activity || activity.length === 0 ? (
-            <div className="text-center py-12 bg-card/30 rounded-xl border border-border/50">
-              <Flame className="w-8 h-8 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground font-mono">No drinks tallied yet. Get out there.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {activity.map((item, i) => (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  key={`${item.drinkId}-${item.createdAt}`}
-                >
-                  <Card className="bg-card/50 hover:bg-card border-border/50 transition-colors">
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Flame className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-white uppercase text-lg leading-tight">
-                            {item.drinkName}
-                          </p>
-                          <Link href={`/bars/${item.barId}`} className="text-sm font-mono text-muted-foreground hover:text-accent transition-colors">
-                            @ {item.barName}
-                          </Link>
-                        </div>
-                      </div>
-                      <span className="text-xs font-mono text-muted-foreground bg-background/50 px-2 py-1 rounded">
-                        {formatTimeAgo(item.createdAt)}
-                      </span>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          )}
+      {/* Followed Bars */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 border-b border-border/50 pb-4">
+          <Heart className="w-5 h-5 text-primary" />
+          <h2 className="text-2xl font-black uppercase tracking-tight">Your Bars</h2>
         </div>
 
-        {/* Right Column: Followed Bars */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 mb-4 border-b border-border/50 pb-4">
-            <Heart className="w-5 h-5 text-secondary" />
-            <h2 className="text-2xl font-black uppercase tracking-tight">Your Spots</h2>
+        {loadingFollowing ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
           </div>
-
-          {loadingFollowing ? (
-            <div className="space-y-4">
-               {[1,2].map(i => <Skeleton key={i} className="h-32 w-full" />)}
-            </div>
-          ) : !following || following.length === 0 ? (
-            <div className="text-center py-8 bg-card/30 rounded-xl border border-dashed border-border/50">
-              <p className="text-sm text-muted-foreground font-mono">You aren't following any bars.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {following.map((bar) => (
-                <BarCard key={bar.id} bar={bar} className="h-64" />
-              ))}
-            </div>
-          )}
-        </div>
+        ) : !following || following.length === 0 ? (
+          <div className="text-center py-16 bg-card/30 rounded-xl border border-border/50">
+            <Heart className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-40" />
+            <p className="text-muted-foreground font-mono text-lg">No bars followed yet.</p>
+            <p className="text-muted-foreground font-mono text-sm mt-1">Hit Follow on any bar to save it here.</p>
+          </div>
+        ) : (
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {following.map(bar => (
+              <motion.div
+                key={bar.id}
+                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+              >
+                <BarCard bar={bar} />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </div>
     </div>
   );
