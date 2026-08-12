@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "The Weekender"
+description = "A going-out companion app where bar patrons can tally drinks at local bars to show popularity. Bars can create profiles with weekly specials and follow/push features. Has a vibrant club-vibe UI with neon colors."
+version = "1.0.0"
+id = "artifacts/weekender"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23324
+
+[services.development]
+run = "pnpm --filter @workspace/weekender run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/weekender", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/weekender/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23324"
+BASE_PATH = "/"

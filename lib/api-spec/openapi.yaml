@@ -3,20 +3,34 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: The Weekender API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User operations
+  - name: bars
+    description: Bar operations
+  - name: drinks
+    description: Drink operations
+  - name: specials
+    description: Bar specials operations
+  - name: follows
+    description: Follow/favorite operations
+  - name: stats
+    description: Stats and trending
+  - name: coupons
+    description: Bar coupon management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +38,564 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Users
+  /users:
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{userId}/following:
+    get:
+      operationId: getUserFollowing
+      tags: [users]
+      summary: Get bars that user follows
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of followed bars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bar"
+
+  /users/{userId}/activity:
+    get:
+      operationId: getUserActivity
+      tags: [users]
+      summary: Get user recent drink tally activity
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TallyActivity"
+
+  # Bars
+  /bars:
+    get:
+      operationId: listBars
+      tags: [bars]
+      summary: List all bars
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of bars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bar"
+    post:
+      operationId: createBar
+      tags: [bars]
+      summary: Create a bar profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bar"
+
+  /bars/trending:
+    get:
+      operationId: getTrendingBars
+      tags: [bars]
+      summary: Get top trending bars by tally activity
+      responses:
+        "200":
+          description: Trending bars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bar"
+
+  /bars/{barId}:
+    get:
+      operationId: getBar
+      tags: [bars]
+      summary: Get bar by ID
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Bar found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bar"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateBar
+      tags: [bars]
+      summary: Update bar profile
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bar"
+
+  /bars/{barId}/stats:
+    get:
+      operationId: getBarStats
+      tags: [stats]
+      summary: Get bar stats (tallies, followers, top drinks)
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Bar stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarStats"
+
+  # Drinks
+  /bars/{barId}/drinks:
+    get:
+      operationId: listBarDrinks
+      tags: [drinks]
+      summary: List drinks at a bar
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Drink list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Drink"
+    post:
+      operationId: createDrink
+      tags: [drinks]
+      summary: Add a drink to a bar
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DrinkInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Drink"
+
+  /drinks/{drinkId}/tally:
+    post:
+      operationId: tallyDrink
+      tags: [drinks]
+      summary: Add a tally mark to a drink
+      parameters:
+        - name: drinkId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TallyInput"
+      responses:
+        "200":
+          description: Updated drink with new tally count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Drink"
+
+  /drinks/trending:
+    get:
+      operationId: getTrendingDrinks
+      tags: [drinks]
+      summary: Get top trending drinks across all bars
+      responses:
+        "200":
+          description: Trending drinks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Drink"
+
+  # Specials
+  /bars/{barId}/specials:
+    get:
+      operationId: listBarSpecials
+      tags: [specials]
+      summary: Get weekly specials for a bar
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Specials list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Special"
+    post:
+      operationId: createSpecial
+      tags: [specials]
+      summary: Add a weekly special
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpecialInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Special"
+
+  /specials/{specialId}:
+    delete:
+      operationId: deleteSpecial
+      tags: [specials]
+      summary: Remove a special
+      parameters:
+        - name: specialId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  # Follows
+  /bars/{barId}/follow:
+    post:
+      operationId: followBar
+      tags: [follows]
+      summary: Follow a bar
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowInput"
+      responses:
+        "200":
+          description: Followed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+    delete:
+      operationId: unfollowBar
+      tags: [follows]
+      summary: Unfollow a bar
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowInput"
+      responses:
+        "200":
+          description: Unfollowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+
+  /bars/{barId}/follow/{userId}/status:
+    get:
+      operationId: getBarFollowStatus
+      tags: [follows]
+      summary: Check if a user follows a bar
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Follow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+
+  # Coupons
+  /bars/{barId}/coupons:
+    get:
+      operationId: listBarCoupons
+      tags: [coupons]
+      summary: List all coupons for a bar (owner view)
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Coupon list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Coupon"
+    post:
+      operationId: createCoupon
+      tags: [coupons]
+      summary: Create a coupon (subscription required)
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CouponInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coupon"
+        "403":
+          description: Subscription required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bars/{barId}/coupons/patron:
+    get:
+      operationId: listPatronCoupons
+      tags: [coupons]
+      summary: Active coupons visible to bar followers/patrons
+      parameters:
+        - name: barId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Active coupons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Coupon"
+
+  /coupons/{couponId}:
+    delete:
+      operationId: deleteCoupon
+      tags: [coupons]
+      summary: Delete a coupon
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+
+  /coupons/{couponId}/redeem:
+    post:
+      operationId: redeemCoupon
+      tags: [coupons]
+      summary: Redeem a coupon (increments use count)
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedeemInput"
+      responses:
+        "200":
+          description: Redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coupon"
+        "410":
+          description: Coupon expired or maxed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # Global stats
+  /stats/trending:
+    get:
+      operationId: getTrendingStats
+      tags: [stats]
+      summary: Get global trending stats (top drinks, top bars, total tallies)
+      responses:
+        "200":
+          description: Trending stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendingStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +606,330 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    User:
+      type: object
+      properties:
+        id:
+          type: number
+        username:
+          type: string
+        email:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - username
+        - email
+        - createdAt
+
+    UserInput:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+      required:
+        - username
+        - email
+
+    Bar:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
+        ownerId:
+          type: ["number", "null"]
+        subscriptionActive:
+          type: boolean
+        followerCount:
+          type: number
+        totalTallies:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - subscriptionActive
+        - followerCount
+        - totalTallies
+        - createdAt
+
+    BarInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        coverImageUrl:
+          type: string
+        ownerId:
+          type: number
+        subscriptionActive:
+          type: boolean
+      required:
+        - name
+
+    BarUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        coverImageUrl:
+          type: string
+        subscriptionActive:
+          type: boolean
+
+    BarStats:
+      type: object
+      properties:
+        barId:
+          type: number
+        followerCount:
+          type: number
+        totalTallies:
+          type: number
+        topDrinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Drink"
+        weeklyTallies:
+          type: number
+      required:
+        - barId
+        - followerCount
+        - totalTallies
+        - topDrinks
+        - weeklyTallies
+
+    Drink:
+      type: object
+      properties:
+        id:
+          type: number
+        barId:
+          type: number
+        barName:
+          type: ["string", "null"]
+        name:
+          type: string
+        category:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        price:
+          type: ["string", "null"]
+        tallyCount:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - barId
+        - name
+        - tallyCount
+        - createdAt
+
+    DrinkInput:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        price:
+          type: string
+      required:
+        - name
+
+    TallyInput:
+      type: object
+      properties:
+        userId:
+          type: number
+
+    TallyActivity:
+      type: object
+      properties:
+        drinkId:
+          type: number
+        drinkName:
+          type: string
+        barId:
+          type: number
+        barName:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - drinkId
+        - drinkName
+        - barId
+        - barName
+        - createdAt
+
+    Special:
+      type: object
+      properties:
+        id:
+          type: number
+        barId:
+          type: number
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        validUntil:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - barId
+        - title
+        - createdAt
+
+    SpecialInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        validUntil:
+          type: string
+      required:
+        - title
+
+    FollowInput:
+      type: object
+      properties:
+        userId:
+          type: number
+      required:
+        - userId
+
+    FollowStatus:
+      type: object
+      properties:
+        following:
+          type: boolean
+        followerCount:
+          type: number
+      required:
+        - following
+        - followerCount
+
+    Coupon:
+      type: object
+      properties:
+        id:
+          type: number
+        barId:
+          type: number
+        code:
+          type: string
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        discountType:
+          type: string
+        discountValue:
+          type: ["string", "null"]
+        expiresAt:
+          type: ["string", "null"]
+        maxUses:
+          type: ["number", "null"]
+        usedCount:
+          type: number
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - barId
+        - code
+        - title
+        - discountType
+        - usedCount
+        - isActive
+        - createdAt
+
+    CouponInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        discountType:
+          type: string
+        discountValue:
+          type: string
+        expiresAt:
+          type: string
+        maxUses:
+          type: number
+      required:
+        - title
+        - discountType
+
+    RedeemInput:
+      type: object
+      properties:
+        userId:
+          type: number
+
+    TrendingStats:
+      type: object
+      properties:
+        totalTallies:
+          type: number
+        totalBars:
+          type: number
+        topDrinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Drink"
+        topBars:
+          type: array
+          items:
+            $ref: "#/components/schemas/Bar"
+      required:
+        - totalTallies
+        - totalBars
+        - topDrinks
+        - topBars

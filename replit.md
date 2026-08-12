@@ -1,44 +1,61 @@
-# [Project name]
+# The Weekender
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A going-out companion app where bar patrons tally drinks at local bars to discover what's hot tonight. Bars can create profiles with weekly specials. Club-vibe UI with neon colors on dark backgrounds.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/weekender run dev` — run the frontend (auto-assigned port)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL` — Postgres connection string (pre-configured)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite, TailwindCSS, Framer Motion, wouter
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- Validation: Zod (v3), drizzle-zod
+- API codegen: Orval (from OpenAPI spec in `lib/api-spec/openapi.yaml`)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — single source of truth for API contracts
+- `lib/db/src/schema/` — Drizzle table definitions (bars, drinks, tallies, users, specials, barFollows)
+- `artifacts/api-server/src/routes/` — Express route handlers (bars, drinks, specials, follows, stats, users)
+- `artifacts/weekender/src/` — React frontend (pages, components)
+- `lib/api-client-react/src/generated/` — auto-generated React Query hooks (do not edit)
+- `lib/api-zod/src/generated/` — auto-generated Zod schemas (do not edit)
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- No auth on first build — userId=1 / barId=1 are hardcoded as demo "owner" and "patron" for the dashboard and profile pages.
+- All integer fields in OpenAPI spec use `type: number` (not `type: integer`) because Orval 8.x generates `zod.int()` which is Zod v4 syntax; workspace uses Zod v3.
+- `tallyCount` is an in-row counter on the drinks table for fast reads, plus a `tallies` table for per-user history.
+- Bar follower counts are computed live from `bar_follows` table on each request (small scale).
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Patrons discover bars and tally drinks to show popularity
+- Bar owners pay $5/month for a verified profile with specials and follower notifications
+- Key interactions: tally a drink (pulse animation), follow a bar, view trending leaderboard
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Club-vibe UI: dark backgrounds (#0A0A0F), hot pink neon, electric purple, cyan accents
+- No emojis anywhere in the UI
+- Fun, energetic — makes someone feel like going out
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After any OpenAPI spec change, run codegen before touching frontend code
+- Use `type: number` not `type: integer` in the OpenAPI spec (Zod v3 compatibility)
+- `db.$count()` returns a string — always wrap in `Number()`
+- Drizzle increment: use `drinksTable.tallyCount + 1` with `as any` cast for the update
 
 ## Pointers
 
