@@ -13,6 +13,7 @@ import { BarProfile } from '@/pages/BarProfile';
 import { Dashboard } from '@/pages/Dashboard';
 import { PatronProfile } from '@/pages/PatronProfile';
 import { Trending } from '@/pages/Trending';
+import { SpinTheNight } from '@/pages/SpinTheNight';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/profile" component={PatronProfile} />
           <Route path="/trending" component={Trending} />
+          <Route path="/spin" component={SpinTheNight} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

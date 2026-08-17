@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Flame, GlassWater, LayoutDashboard, MapPin, User } from "lucide-react";
+import { Flame, GlassWater, LayoutDashboard, MapPin, User, Dices } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
@@ -10,6 +10,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: "/", label: "Discover", icon: MapPin },
     { href: "/bars", label: "All Bars", icon: GlassWater },
     { href: "/trending", label: "Trending", icon: Flame },
+    { href: "/spin", label: "Spin", icon: Dices },
     { href: "/profile", label: "Profile", icon: User },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
