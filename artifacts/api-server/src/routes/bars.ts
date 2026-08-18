@@ -31,11 +31,11 @@ router.get("/bars", async (req, res): Promise<void> => {
 });
 
 router.post("/bars", async (req, res): Promise<void> => {
-  const { name, description, address, coverImageUrl, ownerId, subscriptionActive } = req.body;
+  const { name, description, address, coverImageUrl, ownerId, subscriptionActive, latitude, longitude } = req.body;
   if (!name) { res.status(400).json({ error: "name required" }); return; }
   const [bar] = await db
     .insert(barsTable)
-    .values({ name, description, address, coverImageUrl, ownerId, subscriptionActive: subscriptionActive ?? false })
+    .values({ name, description, address, coverImageUrl, ownerId, subscriptionActive: subscriptionActive ?? false, latitude, longitude })
     .returning();
   const result = await barWithStats(bar);
   res.status(201).json(result);
@@ -64,13 +64,15 @@ router.put("/bars/:barId", async (req, res): Promise<void> => {
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
 
-  const { name, description, address, coverImageUrl, subscriptionActive } = req.body;
+  const { name, description, address, coverImageUrl, subscriptionActive, latitude, longitude } = req.body;
   const updates: Partial<typeof barsTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
   if (description !== undefined) updates.description = description;
   if (address !== undefined) updates.address = address;
   if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
   if (subscriptionActive !== undefined) updates.subscriptionActive = subscriptionActive;
+  if (latitude !== undefined) updates.latitude = latitude;
+  if (longitude !== undefined) updates.longitude = longitude;
 
   const [bar] = await db.update(barsTable).set(updates).where(eq(barsTable.id, barId)).returning();
   if (!bar) { res.status(404).json({ error: "Bar not found" }); return; }

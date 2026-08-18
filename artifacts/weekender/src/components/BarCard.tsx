@@ -1,17 +1,18 @@
 import { Bar } from "@workspace/api-client-react";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { MapPin, Users, Flame } from "lucide-react";
+import { MapPin, Users, Flame, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BarCardProps {
   bar: Bar;
   rank?: number;
   className?: string;
+  distanceMi?: number;
 }
 
-export function BarCard({ bar, rank, className }: BarCardProps) {
+export function BarCard({ bar, rank, className, distanceMi }: BarCardProps) {
   return (
     <Link href={`/bars/${bar.id}`}>
       <Card className={cn("group cursor-pointer overflow-hidden transition-all hover:border-primary hover:-translate-y-1 relative h-full flex flex-col", className)}>
@@ -41,6 +42,12 @@ export function BarCard({ bar, rank, className }: BarCardProps) {
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1 font-mono">
                 <MapPin className="w-3 h-3 text-accent" />
                 <span className="truncate">{bar.address}</span>
+              </p>
+            )}
+            {distanceMi !== undefined && (
+              <p className="text-xs text-accent font-mono mt-0.5 flex items-center gap-1">
+                <Navigation className="w-3 h-3" />
+                {distanceMi < 0.1 ? "< 0.1 mi away" : `${distanceMi.toFixed(1)} mi away`}
               </p>
             )}
           </div>

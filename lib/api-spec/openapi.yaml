@@ -663,6 +663,10 @@ components:
           type: ["number", "null"]
         subscriptionActive:
           type: boolean
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
         followerCount:
           type: number
         totalTallies:
@@ -692,6 +696,10 @@ components:
           type: number
         subscriptionActive:
           type: boolean
+        latitude:
+          type: number
+        longitude:
+          type: number
       required:
         - name
 
@@ -708,6 +716,10 @@ components:
           type: string
         subscriptionActive:
           type: boolean
+        latitude:
+          type: number
+        longitude:
+          type: number
 
     BarStats:
       type: object

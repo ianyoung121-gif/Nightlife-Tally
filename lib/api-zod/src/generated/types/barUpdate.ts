@@ -12,4 +12,6 @@ export interface BarUpdate {
   address?: string;
   coverImageUrl?: string;
   subscriptionActive?: boolean;
+  latitude?: number;
+  longitude?: number;
 }

@@ -41,6 +41,10 @@ export interface Bar {
   /** @nullable */
   ownerId?: number | null;
   subscriptionActive: boolean;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
   followerCount: number;
   totalTallies: number;
   createdAt: string;
@@ -53,6 +57,8 @@ export interface BarInput {
   coverImageUrl?: string;
   ownerId?: number;
   subscriptionActive?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface BarUpdate {
@@ -61,6 +67,8 @@ export interface BarUpdate {
   address?: string;
   coverImageUrl?: string;
   subscriptionActive?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Drink {

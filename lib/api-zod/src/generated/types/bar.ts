@@ -18,6 +18,10 @@ export interface Bar {
   /** @nullable */
   ownerId?: number | null;
   subscriptionActive: boolean;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
   followerCount: number;
   totalTallies: number;
   createdAt: string;

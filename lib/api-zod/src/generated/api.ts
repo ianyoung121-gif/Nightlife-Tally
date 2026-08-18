@@ -65,6 +65,8 @@ export const GetUserFollowingResponseItem = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -104,6 +106,8 @@ export const ListBarsResponseItem = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -120,7 +124,9 @@ export const CreateBarBody = zod.object({
   "address": zod.string().optional(),
   "coverImageUrl": zod.string().optional(),
   "ownerId": zod.number().optional(),
-  "subscriptionActive": zod.boolean().optional()
+  "subscriptionActive": zod.boolean().optional(),
+  "latitude": zod.number().optional(),
+  "longitude": zod.number().optional()
 })
 
 export const CreateBarResponse = zod.object({
@@ -131,6 +137,8 @@ export const CreateBarResponse = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -148,6 +156,8 @@ export const GetTrendingBarsResponseItem = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -170,6 +180,8 @@ export const GetBarResponse = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -188,7 +200,9 @@ export const UpdateBarBody = zod.object({
   "description": zod.string().optional(),
   "address": zod.string().optional(),
   "coverImageUrl": zod.string().optional(),
-  "subscriptionActive": zod.boolean().optional()
+  "subscriptionActive": zod.boolean().optional(),
+  "latitude": zod.number().optional(),
+  "longitude": zod.number().optional()
 })
 
 export const UpdateBarResponse = zod.object({
@@ -199,6 +213,8 @@ export const UpdateBarResponse = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -561,6 +577,8 @@ export const GetTrendingStatsResponse = zod.object({
   "coverImageUrl": zod.string().nullish(),
   "ownerId": zod.number().nullish(),
   "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
