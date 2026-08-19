@@ -12,8 +12,13 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useListBars } from '@workspace/api-client-react';
+import {
+  getDiscoverNearbyVenuesQueryKey,
+  useDiscoverNearbyVenues,
+  useListBars,
+} from '@workspace/api-client-react';
 import { VenueCard } from '@/components/VenueCard';
+import { LiveVenueCard } from '@/components/LiveVenueCard';
 import { useColors } from '@/hooks/useColors';
 import { useDeviceLocation } from '@/context/LocationContext';
 import { distanceMiles, hasVerifiedVenueLocation } from '@/utils/location';
@@ -23,10 +28,32 @@ export default function NearbyScreen() {
   const router = useRouter();
   const barsQuery = useListBars();
   const location = useDeviceLocation();
+  const nearbyParams = useMemo(
+    () =>
+      location.coordinates
+        ? {
+            latitude: location.coordinates.latitude,
+            longitude: location.coordinates.longitude,
+            radiusMiles: 5,
+          }
+        : { latitude: 0, longitude: 0, radiusMiles: 5 },
+    [location.coordinates],
+  );
+  const nearbyQuery = useDiscoverNearbyVenues(nearbyParams, {
+    query: {
+      queryKey: getDiscoverNearbyVenuesQueryKey(nearbyParams),
+      enabled: location.status === 'ready' && Boolean(location.coordinates),
+      staleTime: 60_000,
+      retry: 1,
+    },
+  });
+  const curatedBars = location.status === 'ready' && nearbyQuery.data
+    ? nearbyQuery.data.curated
+    : barsQuery.data;
 
   const venues = useMemo(() => {
-    if (!barsQuery.data) return [];
-    return barsQuery.data
+    if (!curatedBars) return [];
+    return curatedBars
       .map((bar) => {
         const distance =
           location.coordinates && hasVerifiedVenueLocation(bar)
@@ -38,9 +65,12 @@ export default function NearbyScreen() {
         return { bar, distance };
       })
       .sort((first, second) => (first.distance ?? Infinity) - (second.distance ?? Infinity));
-  }, [barsQuery.data, location.coordinates]);
+  }, [curatedBars, location.coordinates]);
 
   const hasPinnedVenues = venues.some((venue) => venue.distance !== null);
+  const discoveredVenues = location.status === 'ready' ? nearbyQuery.data?.discovered ?? [] : [];
+  const isNearbyLoading = location.status === 'ready' && nearbyQuery.isLoading && !nearbyQuery.data;
+  const totalVenueCount = venues.length + discoveredVenues.length;
 
   return (
     <View style={[styles.page, { backgroundColor: colors.background }]}>
@@ -109,10 +139,10 @@ export default function NearbyScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             {location.status === 'ready' ? 'Closest spots' : 'All venues'}
           </Text>
-          <Text style={[styles.count, { color: colors.mutedForeground }]}>{venues.length} LISTED</Text>
+          <Text style={[styles.count, { color: colors.mutedForeground }]}>{totalVenueCount} LISTED</Text>
         </View>
 
-        {barsQuery.isLoading ? (
+        {barsQuery.isLoading || isNearbyLoading ? (
           <View style={styles.loading}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
@@ -124,7 +154,7 @@ export default function NearbyScreen() {
               <Text style={[styles.retry, { color: colors.accent }]}>TRY AGAIN</Text>
             </Pressable>
           </View>
-        ) : venues.length === 0 ? (
+        ) : venues.length === 0 && discoveredVenues.length === 0 ? (
           <View style={[styles.empty, { borderColor: colors.border, backgroundColor: colors.card }]}>
             <Feather name="map-pin" size={28} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No venues yet</Text>
@@ -153,6 +183,35 @@ export default function NearbyScreen() {
                 />
               ))}
             </View>
+            {location.status === 'ready' && nearbyQuery.data?.liveSearchStatus === 'error' && (
+              <View style={[styles.notice, { borderColor: colors.secondary, backgroundColor: colors.secondary + '1A' }]}>
+                <Feather name="alert-circle" size={16} color={colors.secondary} />
+                <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
+                  {nearbyQuery.data.liveSearchMessage}
+                </Text>
+              </View>
+            )}
+            {discoveredVenues.length > 0 && (
+              <View style={styles.liveSection}>
+                <View style={styles.liveHeading}>
+                  <Text style={[styles.liveEyebrow, { color: colors.accent }]}>LIVE NEARBY DISCOVERY</Text>
+                  <Text style={[styles.liveTitle, { color: colors.foreground }]}>More bars around you</Text>
+                  <Text style={[styles.liveCopy, { color: colors.mutedForeground }]}>
+                    These venues are not verified Weekender profiles yet, so tallies are unavailable.
+                  </Text>
+                </View>
+                <View style={styles.venueList}>
+                  {discoveredVenues.map((venue) => (
+                    <LiveVenueCard key={venue.providerId} venue={venue} />
+                  ))}
+                </View>
+                {nearbyQuery.data?.attribution && (
+                  <Text style={[styles.attribution, { color: colors.mutedForeground }]}>
+                    {nearbyQuery.data.attribution.label}
+                  </Text>
+                )}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -195,6 +254,12 @@ const styles = StyleSheet.create({
   count: { fontFamily: 'SpaceMono_700Bold', fontSize: 10, letterSpacing: 0.8 },
   loading: { paddingVertical: 64, alignItems: 'center' },
   venueList: { gap: 12 },
+  liveSection: { gap: 13, marginTop: 10 },
+  liveHeading: { gap: 4 },
+  liveEyebrow: { fontFamily: 'SpaceMono_700Bold', fontSize: 10, letterSpacing: 1.1 },
+  liveTitle: { fontFamily: 'Outfit_700Bold', fontSize: 21 },
+  liveCopy: { fontFamily: 'Outfit_400Regular', fontSize: 12, lineHeight: 17 },
+  attribution: { fontFamily: 'SpaceMono_400Regular', fontSize: 10, marginTop: 1 },
   empty: { minHeight: 174, borderWidth: 1, borderRadius: 16, padding: 22, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyTitle: { fontFamily: 'Outfit_700Bold', fontSize: 18 },
   emptyText: { fontFamily: 'Outfit_400Regular', fontSize: 13, textAlign: 'center', lineHeight: 18 },

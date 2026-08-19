@@ -8,6 +8,7 @@ import followsRouter from "./follows";
 import statsRouter from "./stats";
 import couponsRouter from "./coupons";
 import authRouter from "./auth";
+import venuesRouter from "./venues";
 
 const router: IRouter = Router();
 
@@ -15,6 +16,7 @@ router.use(healthRouter);
 router.use(authRouter);
 router.use(usersRouter);
 router.use(barsRouter);
+router.use(venuesRouter);
 router.use(drinksRouter);
 router.use(specialsRouter);
 router.use(followsRouter);

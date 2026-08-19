@@ -171,6 +171,63 @@ export const CreateBarResponse = zod.object({
 
 
 /**
+ * @summary Find curated and live nearby nightlife venues
+ */
+export const discoverNearbyVenuesQueryLatitudeMin = -90;
+export const discoverNearbyVenuesQueryLatitudeMax = 90;
+
+export const discoverNearbyVenuesQueryLongitudeMin = -180;
+export const discoverNearbyVenuesQueryLongitudeMax = 180;
+
+export const discoverNearbyVenuesQueryRadiusMilesDefault = 5;
+export const discoverNearbyVenuesQueryRadiusMilesMin = 0.5;
+export const discoverNearbyVenuesQueryRadiusMilesMax = 15;
+
+
+
+export const DiscoverNearbyVenuesQueryParams = zod.object({
+  "latitude": zod.coerce.number().min(discoverNearbyVenuesQueryLatitudeMin).max(discoverNearbyVenuesQueryLatitudeMax),
+  "longitude": zod.coerce.number().min(discoverNearbyVenuesQueryLongitudeMin).max(discoverNearbyVenuesQueryLongitudeMax),
+  "radiusMiles": zod.coerce.number().min(discoverNearbyVenuesQueryRadiusMilesMin).max(discoverNearbyVenuesQueryRadiusMilesMax).default(discoverNearbyVenuesQueryRadiusMilesDefault)
+})
+
+export const DiscoverNearbyVenuesResponse = zod.object({
+  "curated": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "coverImageUrl": zod.string().nullish(),
+  "ownerId": zod.number().nullish(),
+  "subscriptionActive": zod.boolean(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
+  "followerCount": zod.number(),
+  "totalTallies": zod.number(),
+  "createdAt": zod.string()
+})),
+  "discovered": zod.array(zod.object({
+  "providerId": zod.string(),
+  "name": zod.string(),
+  "address": zod.string().nullable(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "distanceMiles": zod.number(),
+  "googleMapsUri": zod.string().nullable(),
+  "primaryType": zod.string().nullable()
+})),
+  "radiusMiles": zod.number(),
+  "liveSearchStatus": zod.enum(['available', 'error']),
+  "liveSearchMessage": zod.string().nullable(),
+  "attribution": zod.object({
+  "label": zod.string(),
+  "url": zod.string()
+})
+})
+
+
+/**
  * @summary Get top trending bars by tally activity
  */
 export const GetTrendingBarsResponseItem = zod.object({

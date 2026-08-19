@@ -1,10 +1,15 @@
 import { useState, useMemo } from "react";
-import { useListBars } from "@workspace/api-client-react";
+import {
+  getDiscoverNearbyVenuesQueryKey,
+  useDiscoverNearbyVenues,
+  useListBars,
+} from "@workspace/api-client-react";
 import { BarCard } from "@/components/BarCard";
+import { LiveVenueCard } from "@/components/LiveVenueCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Loader2, Navigation } from "lucide-react";
+import { Search, MapPin, Loader2, Navigation, Radar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useUserLocation, distanceMiles, hasVerifiedVenueLocation } from "@/hooks/useUserLocation";
@@ -19,6 +24,25 @@ export function BarBrowser() {
   );
 
   const { state: locState, request: requestLocation } = useUserLocation();
+  const nearbySearchParams = useMemo(
+    () =>
+      locState.status === "granted"
+        ? {
+            latitude: locState.location.latitude,
+            longitude: locState.location.longitude,
+            radiusMiles: 5,
+          }
+        : { latitude: 0, longitude: 0, radiusMiles: 5 },
+    [locState],
+  );
+  const nearbyQuery = useDiscoverNearbyVenues(nearbySearchParams, {
+    query: {
+      queryKey: getDiscoverNearbyVenuesQueryKey(nearbySearchParams),
+      enabled: sortByDistance && locState.status === "granted",
+      staleTime: 60_000,
+      retry: 1,
+    },
+  });
 
   const handleNearMe = () => {
     if (locState.status === "idle" || locState.status === "denied") {
@@ -60,6 +84,11 @@ export function BarBrowser() {
     if (locState.status === "granted" && sortByDistance) return <><Navigation className="w-4 h-4" /> Near Me ✓</>;
     return <><MapPin className="w-4 h-4" /> Near Me</>;
   };
+  const isNearbyMode = sortByDistance && locState.status === "granted";
+  const visibleBars = isNearbyMode && nearbyQuery.data ? nearbyQuery.data.curated : sortedBars;
+  const discoveredVenues = isNearbyMode ? nearbyQuery.data?.discovered ?? [] : [];
+  const isLoadingDirectory = isLoading || (isNearbyMode && nearbyQuery.isLoading && !nearbyQuery.data);
+  const hasAnyVenue = Boolean(visibleBars?.length || discoveredVenues.length);
 
   return (
     <div className="space-y-8 pb-24">
@@ -140,13 +169,20 @@ export function BarBrowser() {
         )}
       </AnimatePresence>
 
-      {isLoading ? (
+      {isNearbyMode && nearbyQuery.data?.liveSearchStatus === "error" && (
+        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 flex items-center gap-3">
+          <Radar className="w-4 h-4 text-yellow-400 shrink-0" />
+          <p className="text-sm text-yellow-200 font-mono">{nearbyQuery.data.liveSearchMessage}</p>
+        </div>
+      )}
+
+      {isLoadingDirectory ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Skeleton key={i} className="h-72 rounded-xl" />
           ))}
         </div>
-      ) : !sortedBars || sortedBars.length === 0 ? (
+      ) : !hasAnyVenue ? (
         <div className="text-center py-24 bg-card/30 rounded-xl border border-border/50">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
             {sortByDistance ? <Navigation className="w-8 h-8 text-muted-foreground" /> : <Search className="w-8 h-8 text-muted-foreground" />}
@@ -167,7 +203,7 @@ export function BarBrowser() {
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
-          {sortedBars.map((bar) => (
+          {visibleBars?.map((bar) => (
             <motion.div key={bar.id} variants={item}>
               <BarCard
                 bar={bar}
@@ -187,6 +223,33 @@ export function BarBrowser() {
             </motion.div>
           ))}
         </motion.div>
+      )}
+
+      {isNearbyMode && discoveredVenues.length > 0 && (
+        <section className="space-y-4 pt-4">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-mono uppercase tracking-[0.18em] text-accent">Live nearby discovery</p>
+            <h2 className="text-2xl font-black uppercase tracking-tight">More bars around you</h2>
+            <p className="text-sm text-muted-foreground">
+              These venues are nearby but are not verified Weekender profiles yet, so tallies are not available.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {discoveredVenues.map((venue) => (
+              <LiveVenueCard key={venue.providerId} venue={venue} />
+            ))}
+          </div>
+          {nearbyQuery.data?.attribution && (
+            <a
+              href={nearbyQuery.data.attribution.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-[11px] font-mono text-muted-foreground hover:text-accent"
+            >
+              {nearbyQuery.data.attribution.label}
+            </a>
+          )}
+        </section>
       )}
     </div>
   );

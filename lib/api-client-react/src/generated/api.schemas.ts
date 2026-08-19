@@ -65,6 +65,43 @@ export interface Bar {
   createdAt: string;
 }
 
+export interface DiscoveredVenue {
+  providerId: string;
+  name: string;
+  /** @nullable */
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  distanceMiles: number;
+  /** @nullable */
+  googleMapsUri: string | null;
+  /** @nullable */
+  primaryType: string | null;
+}
+
+export type NearbyVenuesResponseLiveSearchStatus = typeof NearbyVenuesResponseLiveSearchStatus[keyof typeof NearbyVenuesResponseLiveSearchStatus];
+
+
+export const NearbyVenuesResponseLiveSearchStatus = {
+  available: 'available',
+  error: 'error',
+} as const;
+
+export type NearbyVenuesResponseAttribution = {
+  label: string;
+  url: string;
+};
+
+export interface NearbyVenuesResponse {
+  curated: Bar[];
+  discovered: DiscoveredVenue[];
+  radiusMiles: number;
+  liveSearchStatus: NearbyVenuesResponseLiveSearchStatus;
+  /** @nullable */
+  liveSearchMessage: string | null;
+  attribution: NearbyVenuesResponseAttribution;
+}
+
 export interface BarInput {
   name: string;
   description?: string;
@@ -212,5 +249,23 @@ export interface TrendingStats {
 
 export type ListBarsParams = {
 search?: string;
+};
+
+export type DiscoverNearbyVenuesParams = {
+/**
+ * @minimum -90
+ * @maximum 90
+ */
+latitude: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+longitude: number;
+/**
+ * @minimum 0.5
+ * @maximum 15
+ */
+radiusMiles?: number;
 };
 

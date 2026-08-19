@@ -27,6 +27,7 @@ import type {
   BarUpdate,
   Coupon,
   CouponInput,
+  DiscoverNearbyVenuesParams,
   Drink,
   DrinkInput,
   ErrorResponse,
@@ -34,6 +35,7 @@ import type {
   FollowStatus,
   HealthStatus,
   ListBarsParams,
+  NearbyVenuesResponse,
   RedeemInput,
   Special,
   SpecialInput,
@@ -681,6 +683,90 @@ export const useCreateBar = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateBarMutationOptions(options));
     }
+
+export const getDiscoverNearbyVenuesUrl = (params: DiscoverNearbyVenuesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/venues/nearby?${stringifiedParams}` : `/api/venues/nearby`
+}
+
+/**
+ * @summary Find curated and live nearby nightlife venues
+ */
+export const discoverNearbyVenues = async (params: DiscoverNearbyVenuesParams, options?: Parameters<typeof customFetch>[1]): Promise<NearbyVenuesResponse> => {
+
+  return customFetch<NearbyVenuesResponse>(getDiscoverNearbyVenuesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDiscoverNearbyVenuesQueryKey = (params?: DiscoverNearbyVenuesParams,) => {
+    return [
+    `/api/venues/nearby`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDiscoverNearbyVenuesQueryOptions = <TData = Awaited<ReturnType<typeof discoverNearbyVenues>>, TError = ErrorType<ErrorResponse>>(params: DiscoverNearbyVenuesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof discoverNearbyVenues>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDiscoverNearbyVenuesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof discoverNearbyVenues>>> = ({ signal }) => discoverNearbyVenues(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof discoverNearbyVenues>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DiscoverNearbyVenuesQueryResult = NonNullable<Awaited<ReturnType<typeof discoverNearbyVenues>>>
+export type DiscoverNearbyVenuesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Find curated and live nearby nightlife venues
+ */
+
+export function useDiscoverNearbyVenues<TData = Awaited<ReturnType<typeof discoverNearbyVenues>>, TError = ErrorType<ErrorResponse>>(
+ params: DiscoverNearbyVenuesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof discoverNearbyVenues>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDiscoverNearbyVenuesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetTrendingBarsUrl = () => {
 

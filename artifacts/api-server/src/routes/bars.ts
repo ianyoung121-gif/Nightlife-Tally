@@ -44,7 +44,7 @@ function parseLocation(body: unknown): { location?: VerifiedLocation; error?: st
   return { location: { latitude, longitude } };
 }
 
-async function barWithStats(bar: typeof barsTable.$inferSelect) {
+export async function barWithStats(bar: typeof barsTable.$inferSelect) {
   const [{ count: followerCount }] = await db
     .select({ count: db.$count(barFollowsTable, eq(barFollowsTable.barId, bar.id)) })
     .from(barFollowsTable);
