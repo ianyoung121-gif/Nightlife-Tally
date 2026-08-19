@@ -24,6 +24,8 @@ tags:
     description: Stats and trending
   - name: coupons
     description: Bar coupon management
+  - name: auth
+    description: Account session operations
 
 paths:
   /healthz:
@@ -38,6 +40,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      operationId: getCurrentAuthUser
+      tags: [auth]
+      summary: Get the currently signed-in account
+      responses:
+        "200":
+          description: Current account or anonymous state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthState"
 
   # Users
   /users:
@@ -178,6 +193,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Bar"
+
+  /bars/mine:
+    get:
+      operationId: listMyBars
+      tags: [bars]
+      summary: List bar profiles owned by the signed-in account
+      responses:
+        "200":
+          description: Owned bars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bar"
+        "401":
+          description: Sign in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /bars/{barId}:
     get:
@@ -597,6 +633,11 @@ paths:
                 $ref: "#/components/schemas/TrendingStats"
 
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: weekender_session
   schemas:
     HealthStatus:
       type: object
@@ -613,6 +654,35 @@ components:
           type: string
       required:
         - error
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: number
+        username:
+          type: string
+        email:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - username
+        - email
+        - createdAt
+
+    AuthState:
+      type: object
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+      required:
+        - user
 
     User:
       type: object

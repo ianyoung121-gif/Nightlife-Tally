@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, specialsTable } from "@workspace/db";
+import { requireBarOwner } from "../lib/authorization";
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.post("/bars/:barId/specials", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
+  if (!await requireBarOwner(req, res, barId)) return;
 
   const { title, description, validUntil } = req.body;
   if (!title) { res.status(400).json({ error: "title required" }); return; }
@@ -37,6 +39,9 @@ router.delete("/specials/:specialId", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.specialId) ? req.params.specialId[0] : req.params.specialId;
   const specialId = parseInt(raw, 10);
   if (isNaN(specialId)) { res.status(400).json({ error: "Invalid specialId" }); return; }
+  const [special] = await db.select().from(specialsTable).where(eq(specialsTable.id, specialId));
+  if (!special) { res.status(404).json({ error: "Special not found" }); return; }
+  if (!await requireBarOwner(req, res, special.barId)) return;
 
   await db.delete(specialsTable).where(eq(specialsTable.id, specialId));
   res.status(204).send();

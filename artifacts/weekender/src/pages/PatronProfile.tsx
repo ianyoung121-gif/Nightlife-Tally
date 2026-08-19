@@ -4,19 +4,25 @@ import {
   getGetUserQueryKey,
   getGetUserFollowingQueryKey,
 } from "@workspace/api-client-react";
+import { useAuth } from "@workspace/replit-auth-web";
+import { Button } from "@/components/ui/button";
 import { BarCard } from "@/components/BarCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User as UserIcon, Heart, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function PatronProfile() {
-  const userId = 1; // Mock patron ID
+  const { user, isLoading: loadingAuth, login } = useAuth();
+  const userId = user?.id;
   
-  const { data: user, isLoading: loadingUser } = useGetUser(userId, { query: { enabled: true, queryKey: getGetUserQueryKey(userId) } });
-  const { data: following, isLoading: loadingFollowing } = useGetUserFollowing(userId, { query: { enabled: true, queryKey: getGetUserFollowingQueryKey(userId) } });
+  const { data: profile, isLoading: loadingUser } = useGetUser(userId ?? 0, { query: { enabled: Boolean(userId), queryKey: getGetUserQueryKey(userId ?? 0) } });
+  const { data: following, isLoading: loadingFollowing } = useGetUserFollowing(userId ?? 0, { query: { enabled: Boolean(userId), queryKey: getGetUserFollowingQueryKey(userId ?? 0) } });
 
-  if (loadingUser) {
+  if (loadingAuth || (user && loadingUser)) {
     return <div className="p-8"><Skeleton className="h-32 w-full rounded-xl max-w-2xl mx-auto" /></div>;
+  }
+  if (!user) {
+    return <div className="mx-auto max-w-xl space-y-5 py-24 text-center"><UserIcon className="mx-auto h-12 w-12 text-primary" /><h1 className="text-3xl font-black uppercase">Your Weekender account</h1><p className="text-muted-foreground">Log in to save bars and keep your profile on every device.</p><Button onClick={login}>Log in</Button></div>;
   }
 
   return (
@@ -24,17 +30,17 @@ export function PatronProfile() {
       {/* Profile Header */}
       <div className="flex flex-col md:flex-row items-center md:items-start gap-6 pt-8">
         <div className="w-32 h-32 rounded-full bg-card border-4 border-primary/20 flex items-center justify-center shadow-neon-pink relative overflow-hidden">
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+          {profile?.avatarUrl ? (
+            <img src={profile.avatarUrl} alt={profile.username} className="w-full h-full object-cover" />
           ) : (
             <UserIcon className="w-12 h-12 text-primary" />
           )}
         </div>
         <div className="text-center md:text-left pt-4">
           <h1 className="text-4xl font-black uppercase tracking-tighter text-white">
-            @{user?.username || 'Guest'}
+            @{profile?.username || user.username}
           </h1>
-          <p className="text-muted-foreground font-mono mt-1">Patron since {new Date(user?.createdAt || Date.now()).getFullYear()}</p>
+          <p className="text-muted-foreground font-mono mt-1">Patron since {new Date(profile?.createdAt || user.createdAt).getFullYear()}</p>
         </div>
       </div>
 

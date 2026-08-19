@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, barFollowsTable } from "@workspace/db";
+import { requireSignedIn } from "../lib/authorization";
 
 const router = Router();
 
@@ -16,8 +17,8 @@ router.post("/bars/:barId/follow", async (req, res): Promise<void> => {
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
 
-  const { userId } = req.body;
-  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return;
 
   // upsert follow (ignore conflicts)
   const existing = await db
@@ -37,8 +38,8 @@ router.delete("/bars/:barId/follow", async (req, res): Promise<void> => {
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
 
-  const { userId } = req.body;
-  if (!userId) { res.status(400).json({ error: "userId required" }); return; }
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return;
 
   await db
     .delete(barFollowsTable)
@@ -49,10 +50,9 @@ router.delete("/bars/:barId/follow", async (req, res): Promise<void> => {
 
 router.get("/bars/:barId/follow/:userId/status", async (req, res): Promise<void> => {
   const rawBarId = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
-  const rawUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
   const barId = parseInt(rawBarId, 10);
-  const userId = parseInt(rawUserId, 10);
-  if (isNaN(barId) || isNaN(userId)) { res.status(400).json({ error: "Invalid params" }); return; }
+  const userId = requireSignedIn(req, res);
+  if (isNaN(barId) || userId === null) { if (isNaN(barId)) res.status(400).json({ error: "Invalid params" }); return; }
 
   const existing = await db
     .select()

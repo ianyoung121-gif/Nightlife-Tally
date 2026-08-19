@@ -13,6 +13,14 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+  /** @nullable */
+  avatarUrl?: string | null;
+  createdAt: string;
+}
 export interface User {
   id: number;
   username: string;
@@ -201,3 +209,7 @@ export type ListBarsParams = {
 search?: string;
 };
 
+
+export interface AuthState {
+  user: AuthUser | null;
+}

@@ -23,9 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Flame, Star, Activity, Trash2, Plus, Users, Tag, Lock, Copy, Check, LocateFixed, MapPin, ShieldCheck } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@clerk/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@workspace/replit-auth-web";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DISCOUNT_TYPES = [
@@ -78,7 +77,7 @@ function CouponRow({ coupon, onDelete }: { coupon: { id: number; code: string; t
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
             {coupon.code}
           </button>
-          {coupon.maxUses !== null && (
+          {coupon.maxUses != null && (
             <span className="text-[10px] font-mono text-muted-foreground">
               {coupon.usedCount}/{coupon.maxUses} uses
             </span>
@@ -103,28 +102,25 @@ function CouponRow({ coupon, onDelete }: { coupon: { id: number; code: string; t
 }
 
 export function Dashboard() {
-  const { isSignedIn, getToken } = useAuth();
+  const { user, isLoading: loadingAuth, login } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: ownedBars = [], isLoading: loadingOwnedBars } = useQuery({
-    queryKey: ["my-bars"],
-    enabled: isSignedIn,
+    queryKey: ["owned-bars"],
+    enabled: Boolean(user),
     queryFn: async () => {
-      const token = await getToken();
-      const response = await fetch("/api/bars/mine", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) throw new Error("Unable to load your venues.");
+      const response = await fetch("/api/bars/mine", { credentials: "include" });
+      if (!response.ok) throw new Error("Could not load your venue.");
       return response.json() as Promise<Array<{ id: number }>>;
     },
   });
   const barId = ownedBars[0]?.id ?? 0;
 
-  const { data: bar, isLoading: loadingBar } = useGetBar(barId, { query: { enabled: true, queryKey: getGetBarQueryKey(barId) } });
-  const { data: stats } = useGetBarStats(barId, { query: { enabled: true, queryKey: getGetBarStatsQueryKey(barId) } });
-  const { data: specials } = useListBarSpecials(barId, { query: { enabled: true, queryKey: getListBarSpecialsQueryKey(barId) } });
-  const { data: drinks } = useListBarDrinks(barId, { query: { enabled: true, queryKey: getListBarDrinksQueryKey(barId) } });
-  const { data: coupons } = useListBarCoupons(barId, { query: { enabled: true, queryKey: getListBarCouponsQueryKey(barId) } });
+  const { data: bar, isLoading: loadingBar } = useGetBar(barId, { query: { enabled: barId > 0, queryKey: getGetBarQueryKey(barId) } });
+  const { data: stats } = useGetBarStats(barId, { query: { enabled: barId > 0, queryKey: getGetBarStatsQueryKey(barId) } });
+  const { data: specials } = useListBarSpecials(barId, { query: { enabled: barId > 0, queryKey: getListBarSpecialsQueryKey(barId) } });
+  const { data: drinks } = useListBarDrinks(barId, { query: { enabled: barId > 0, queryKey: getListBarDrinksQueryKey(barId) } });
+  const { data: coupons } = useListBarCoupons(barId, { query: { enabled: barId > 0, queryKey: getListBarCouponsQueryKey(barId) } });
 
   const updateBar = useUpdateBar({
     mutation: {
@@ -301,7 +297,12 @@ export function Dashboard() {
     });
   };
 
-  if (!isSignedIn) return <div className="p-8 text-center text-muted-foreground"><a className="text-primary underline" href="/sign-in">Sign in</a> to manage your venue.</div>;
+  if (loadingAuth) return (
+    <div className="p-8 text-center">
+      <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  if (!user) return <div className="p-8 text-center text-muted-foreground"><button className="text-primary underline" onClick={login}>Sign in</button> to manage your venue.</div>;
   if (loadingOwnedBars || loadingBar) return (
     <div className="p-8 text-center">
       <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -561,16 +562,7 @@ export function Dashboard() {
                       For $5/month, create exclusive coupon codes your followers can show at the bar.
                     </p>
                   </div>
-                  <Button
-                    variant="default"
-                    onClick={() => {
-                      updateBar.mutate({ barId, data: { subscriptionActive: true } });
-                      queryClient.invalidateQueries({ queryKey: getGetBarQueryKey(barId) });
-                    }}
-                    className="w-full"
-                  >
-                    <Star className="w-4 h-4 mr-2" /> Activate $5/mo Subscription
-                  </Button>
+                  <p className="text-xs text-muted-foreground">Subscriptions are verified through billing before coupon tools are enabled.</p>
                 </div>
               ) : (
                 <div className="space-y-6">

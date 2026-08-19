@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { eq, desc, sql } from "drizzle-orm";
 import { db, drinksTable, talliesTable, barsTable } from "@workspace/db";
+import { requireBarOwner } from "../lib/authorization";
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.post("/bars/:barId/drinks", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
+  if (!await requireBarOwner(req, res, barId)) return;
 
   const { name, category, description, price } = req.body;
   if (!name) { res.status(400).json({ error: "name required" }); return; }

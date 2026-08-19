@@ -1,23 +1,13 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable, barFollowsTable, barsTable, talliesTable, drinksTable } from "@workspace/db";
+import { requireSignedIn } from "../lib/authorization";
 
 const router = Router();
 
-router.post("/users", async (req, res): Promise<void> => {
-  const { username, email, avatarUrl } = req.body;
-  if (!username || !email) {
-    res.status(400).json({ error: "username and email required" });
-    return;
-  }
-  const [user] = await db.insert(usersTable).values({ username, email, avatarUrl }).returning();
-  res.status(201).json(user);
-});
-
 router.get("/users/:userId", async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-  const userId = parseInt(raw, 10);
-  if (isNaN(userId)) { res.status(400).json({ error: "Invalid userId" }); return; }
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
@@ -25,9 +15,8 @@ router.get("/users/:userId", async (req, res): Promise<void> => {
 });
 
 router.get("/users/:userId/following", async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-  const userId = parseInt(raw, 10);
-  if (isNaN(userId)) { res.status(400).json({ error: "Invalid userId" }); return; }
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return;
 
   const follows = await db.select().from(barFollowsTable).where(eq(barFollowsTable.userId, userId));
   if (follows.length === 0) { res.json([]); return; }
@@ -50,9 +39,8 @@ router.get("/users/:userId/following", async (req, res): Promise<void> => {
 });
 
 router.get("/users/:userId/activity", async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-  const userId = parseInt(raw, 10);
-  if (isNaN(userId)) { res.status(400).json({ error: "Invalid userId" }); return; }
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return;
 
   const tallies = await db
     .select()

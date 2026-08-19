@@ -1,61 +1,119 @@
-import { clerkClient, getAuth } from "@clerk/express";
 import type { Request, Response } from "express";
 import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import crypto from "crypto";
+import { db, sessionsTable, usersTable, type User } from "@workspace/db";
+import * as oidc from "openid-client";
 
-type AuthenticatedUser = {
-  id: number;
-  clerkUserId: string;
-};
+export const ISSUER_URL = process.env.ISSUER_URL ?? "https://replit.com/oidc";
 
-function rejectUnauthenticated(res: Response): null {
-  res.status(401).json({ error: "Sign in is required to manage a venue location." });
-  return null;
+export async function deleteSession(sid: string): Promise<void> {
+  await db.delete(sessionsTable).where(eq(sessionsTable.sid, sid));
 }
 
-export async function getAuthenticatedUser(
-  req: Request,
-  res: Response,
-): Promise<AuthenticatedUser | null> {
-  const { userId } = getAuth(req);
-  if (!userId) {
-    return rejectUnauthenticated(res);
-  }
+export async function clearSession(res: Response, sid?: string): Promise<void> {
+  if (sid) await deleteSession(sid);
+  res.clearCookie(SESSION_COOKIE, { path: "/" });
+}
 
-  const [existingUser] = await db
-    .select({ id: usersTable.id, clerkUserId: usersTable.clerkUserId })
-    .from(usersTable)
-    .where(eq(usersTable.clerkUserId, userId));
+export async function updateSession(sid: string, data: SessionData): Promise<void> {
+  await db.update(sessionsTable).set({
+    sess: data as unknown as Record<string, unknown>,
+    expire: new Date(Date.now() + SESSION_TTL),
+  }).where(eq(sessionsTable.sid, sid));
+}
 
-  if (existingUser?.clerkUserId) {
-    return { id: existingUser.id, clerkUserId: existingUser.clerkUserId };
-  }
+export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
-  const clerkUser = await clerkClient.users.getUser(userId);
-  const email = clerkUser.primaryEmailAddress?.emailAddress;
-  if (email) {
-    const [emailMatch] = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(eq(usersTable.email, email));
+export async function upsertOidcUser(claims: Record<string, unknown>): Promise<User> {
+  const subject = typeof claims.sub === "string" ? claims.sub : "";
+  if (!subject) throw new Error("OIDC response did not include a subject");
 
-    if (emailMatch) {
-      await db
-        .update(usersTable)
-        .set({ clerkUserId: userId })
-        .where(eq(usersTable.id, emailMatch.id));
-      return { id: emailMatch.id, clerkUserId: userId };
-    }
-  }
+  const email = typeof claims.email === "string" && claims.email
+    ? claims.email.toLowerCase()
+    : `member-${subject}@accounts.invalid`;
+  const avatarUrl = typeof claims.profile_image_url === "string"
+    ? claims.profile_image_url
+    : typeof claims.picture === "string" ? claims.picture : null;
+  const username = usernameFromClaims(claims, subject);
 
   const [user] = await db
     .insert(usersTable)
-    .values({
-      clerkUserId: userId,
-      username: userId,
-      email: email ?? `${userId}@clerk.invalid`,
+    .values({ oidcSubject: subject, email, username, avatarUrl })
+    .onConflictDoUpdate({
+      target: usersTable.oidcSubject,
+      set: { email, avatarUrl, updatedAt: new Date() },
     })
-    .returning({ id: usersTable.id, clerkUserId: usersTable.clerkUserId });
+    .returning();
+  return user;
+}
 
-  return { id: user.id, clerkUserId: user.clerkUserId! };
+function usernameFromClaims(claims: Record<string, unknown>, subject: string): string {
+  const preferred = claims.preferred_username ?? claims.name;
+  const base = typeof preferred === "string" && preferred.trim()
+    ? preferred.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40)
+    : "member";
+  return `${base || "member"}-${subject.replace(/[^a-zA-Z0-9]/g, "").slice(-10)}`;
+}
+
+export function getSessionId(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : req.cookies?.[SESSION_COOKIE];
+}
+
+export interface SessionUser {
+  id: number;
+  username: string;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+
+export function toSessionUser(user: User): SessionUser {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt.toISOString(),
+  };
+}
+
+let oidcConfig: oidc.Configuration | null = null;
+
+export interface SessionData {
+  user: SessionUser;
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+}
+
+export async function getOidcConfig(): Promise<oidc.Configuration> {
+  if (!oidcConfig) {
+    if (!process.env.REPL_ID) {
+      throw new Error("REPL_ID is required to configure authentication");
+    }
+    oidcConfig = await oidc.discovery(new URL(ISSUER_URL), process.env.REPL_ID);
+  }
+  return oidcConfig;
+}
+
+export async function createSession(data: SessionData): Promise<string> {
+  const sid = crypto.randomBytes(32).toString("hex");
+  await db.insert(sessionsTable).values({
+    sid,
+    sess: data as unknown as Record<string, unknown>,
+    expire: new Date(Date.now() + SESSION_TTL),
+  });
+  return sid;
+}
+
+export const SESSION_COOKIE = "weekender_session";
+
+export async function getSession(sid: string): Promise<SessionData | null> {
+  const [row] = await db.select().from(sessionsTable).where(eq(sessionsTable.sid, sid));
+  if (!row || row.expire < new Date()) {
+    if (row) await deleteSession(sid);
+    return null;
+  }
+  return row.sess as unknown as SessionData;
 }

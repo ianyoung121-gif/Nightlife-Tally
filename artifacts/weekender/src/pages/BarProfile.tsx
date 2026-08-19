@@ -17,6 +17,7 @@ import {
   getListBarSpecialsQueryKey,
   getListPatronCouponsQueryKey,
 } from "@workspace/api-client-react";
+import { useAuth } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +111,7 @@ function CouponCard({ coupon, onRedeem }: {
                       Expires {new Date(coupon.expiresAt).toLocaleDateString()}
                     </span>
                   )}
-                  {coupon.maxUses !== null && (
+                  {coupon.maxUses != null && (
                     <span className="text-[10px] font-mono text-muted-foreground">
                       {coupon.maxUses - coupon.usedCount} remaining
                     </span>
@@ -136,7 +137,8 @@ function CouponCard({ coupon, onRedeem }: {
 export function BarProfile() {
   const params = useParams();
   const barId = Number(params.barId);
-  const userId = 1; // Mock patron user ID
+  const { user, isLoading: loadingAuth, login } = useAuth();
+  const userId = user?.id;
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -146,14 +148,14 @@ export function BarProfile() {
   const { data: specials, isLoading: loadingSpecials } = useListBarSpecials(barId, { query: { enabled: !!barId, queryKey: getListBarSpecialsQueryKey(barId) } });
   const { data: patronCoupons, isLoading: loadingCoupons } = useListPatronCoupons(barId, { query: { enabled: !!barId, queryKey: getListPatronCouponsQueryKey(barId) } });
 
-  const { data: followStatus } = useGetBarFollowStatus(barId, userId, { 
-    query: { enabled: !!barId, queryKey: getGetBarFollowStatusQueryKey(barId, userId) } 
+  const { data: followStatus } = useGetBarFollowStatus(barId, userId ?? 0, {
+    query: { enabled: Boolean(barId && userId), queryKey: getGetBarFollowStatusQueryKey(barId, userId ?? 0) }
   });
 
   const followMutation = useFollowBar({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetBarFollowStatusQueryKey(barId, userId) });
+        queryClient.invalidateQueries({ queryKey: getGetBarFollowStatusQueryKey(barId, userId ?? 0) });
         queryClient.invalidateQueries({ queryKey: getGetBarStatsQueryKey(barId) });
       }
     }
@@ -162,7 +164,7 @@ export function BarProfile() {
   const unfollowMutation = useUnfollowBar({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetBarFollowStatusQueryKey(barId, userId) });
+        queryClient.invalidateQueries({ queryKey: getGetBarFollowStatusQueryKey(barId, userId ?? 0) });
         queryClient.invalidateQueries({ queryKey: getGetBarStatsQueryKey(barId) });
       }
     }
@@ -183,10 +185,14 @@ export function BarProfile() {
   const isFollowing = followStatus?.following || false;
 
   const toggleFollow = () => {
+    if (!user) {
+      login();
+      return;
+    }
     if (isFollowing) {
-      unfollowMutation.mutate({ barId, data: { userId } });
+      unfollowMutation.mutate({ barId, data: { userId: user.id } });
     } else {
-      followMutation.mutate({ barId, data: { userId } });
+      followMutation.mutate({ barId, data: { userId: user.id } });
     }
   };
 
@@ -259,7 +265,7 @@ export function BarProfile() {
             size="lg" 
             variant={isFollowing ? "secondary" : "default"}
             onClick={toggleFollow}
-            disabled={followMutation.isPending || unfollowMutation.isPending}
+            disabled={loadingAuth || followMutation.isPending || unfollowMutation.isPending}
             className="w-full md:w-auto"
           >
             {isFollowing ? (
@@ -331,7 +337,13 @@ export function BarProfile() {
                       <CouponCard
                         key={coupon.id}
                         coupon={coupon}
-                        onRedeem={(id) => redeemCoupon.mutate({ couponId: id, data: { userId } })}
+                        onRedeem={(id) => {
+                          if (!user) {
+                            login();
+                            return;
+                          }
+                          redeemCoupon.mutate({ couponId: id, data: { userId: user.id } });
+                        }}
                       />
                     ))}
                   </div>

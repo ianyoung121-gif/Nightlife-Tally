@@ -1,1 +1,2 @@
 - [Clerk server setup](clerk-server-setup.md) — use Clerk's configured publishable key directly; the installed shared package no longer exposes the host-key helper in older setup guidance.
+- [Cookie-session CSRF boundary](cookie-session-csrf.md) — browser cookie mutations require trusted Origin validation; mobile Bearer sessions are intentionally exempt.

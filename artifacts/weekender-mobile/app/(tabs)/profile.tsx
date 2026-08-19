@@ -4,11 +4,13 @@ import { Feather } from '@expo/vector-icons';
 import { useGetTrendingStats } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useDeviceLocation } from '@/context/LocationContext';
+import { useAuth } from '@/lib/auth';
 
 export default function ProfileScreen() {
   const colors = useColors();
   const statsQuery = useGetTrendingStats();
   const location = useDeviceLocation();
+  const { user, isLoading, login, logout } = useAuth();
 
   return (
     <View style={[styles.page, { backgroundColor: colors.background }]}>
@@ -19,6 +21,16 @@ export default function ProfileScreen() {
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             The Weekender keeps your tallies anonymous and your plans on your device.
           </Text>
+        </View>
+        <View style={[styles.setting, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.settingIcon, { backgroundColor: colors.primary + '26' }]}>
+            <Feather name="user" size={18} color={colors.primary} />
+          </View>
+          <View style={styles.settingCopy}>
+            <Text style={[styles.settingTitle, { color: colors.foreground }]}>{user ? `@${user.username}` : 'Your account'}</Text>
+            <Text style={[styles.settingDetail, { color: colors.mutedForeground }]}>{user ? user.email : 'Log in to keep your follows with you.'}</Text>
+          </View>
+          {!isLoading && <Pressable onPress={user ? logout : login}><Text style={[styles.enable, { color: colors.accent }]}>{user ? 'LOG OUT' : 'LOG IN'}</Text></Pressable>}
         </View>
 
         <View style={[styles.communityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

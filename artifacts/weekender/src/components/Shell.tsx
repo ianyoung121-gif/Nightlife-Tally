@@ -1,10 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { Flame, GlassWater, LayoutDashboard, MapPin, User, Dices } from "lucide-react";
+import { Flame, GlassWater, LayoutDashboard, MapPin, User, Dices, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { useAuth } from "@workspace/replit-auth-web";
 
 export function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { user, isLoading, login, logout } = useAuth();
 
   const navItems = [
     { href: "/", label: "Discover", icon: MapPin },
@@ -47,6 +49,15 @@ export function Shell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            {!isLoading && (
+              <button
+                onClick={user ? logout : login}
+                className="inline-flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-white"
+              >
+                {user ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                {user ? "Log out" : "Log in"}
+              </button>
+            )}
           </nav>
         </div>
       </header>

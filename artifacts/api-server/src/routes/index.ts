@@ -7,10 +7,12 @@ import specialsRouter from "./specials";
 import followsRouter from "./follows";
 import statsRouter from "./stats";
 import couponsRouter from "./coupons";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
 router.use(usersRouter);
 router.use(barsRouter);
 router.use(drinksRouter);

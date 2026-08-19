@@ -5,3 +5,4 @@ export * from "./tallies";
 export * from "./barFollows";
 export * from "./specials";
 export * from "./coupons";
+export * from "./auth";

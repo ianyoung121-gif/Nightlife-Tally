@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, couponsTable, barsTable } from "@workspace/db";
+import { requireBarOwner, requireSignedIn } from "../lib/authorization";
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.get("/bars/:barId/coupons", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
+  if (!await requireBarOwner(req, res, barId)) return;
 
   const coupons = await db.select().from(couponsTable).where(eq(couponsTable.barId, barId));
   res.json(coupons.map(serializeCoupon));
@@ -29,6 +31,7 @@ router.post("/bars/:barId/coupons", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
+  if (!await requireBarOwner(req, res, barId)) return;
 
   const [bar] = await db.select().from(barsTable).where(eq(barsTable.id, barId));
   if (!bar) { res.status(404).json({ error: "Bar not found" }); return; }
@@ -75,7 +78,9 @@ router.delete("/coupons/:couponId", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.couponId) ? req.params.couponId[0] : req.params.couponId;
   const couponId = parseInt(raw, 10);
   if (isNaN(couponId)) { res.status(400).json({ error: "Invalid couponId" }); return; }
-
+  const [coupon] = await db.select().from(couponsTable).where(eq(couponsTable.id, couponId));
+  if (!coupon) { res.status(404).json({ error: "Coupon not found" }); return; }
+  if (!await requireBarOwner(req, res, coupon.barId)) return;
   await db.delete(couponsTable).where(eq(couponsTable.id, couponId));
   res.status(204).send();
 });
@@ -85,6 +90,7 @@ router.post("/coupons/:couponId/redeem", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.couponId) ? req.params.couponId[0] : req.params.couponId;
   const couponId = parseInt(raw, 10);
   if (isNaN(couponId)) { res.status(400).json({ error: "Invalid couponId" }); return; }
+  if (requireSignedIn(req, res) === null) return;
 
   const [coupon] = await db.select().from(couponsTable).where(eq(couponsTable.id, couponId));
   if (!coupon) { res.status(404).json({ error: "Coupon not found" }); return; }

@@ -1,11 +1,11 @@
 import { type ReactNode, useEffect } from 'react';
-import { ClerkProvider, SignIn, useAuth } from '@clerk/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { Shell } from '@/components/Shell';
+import { AuthProvider } from '@workspace/replit-auth-web';
 
 // Pages
 import { Home } from '@/pages/Home';
@@ -16,19 +16,8 @@ import { PatronProfile } from '@/pages/PatronProfile';
 import { Trending } from '@/pages/Trending';
 import { SpinTheNight } from '@/pages/SpinTheNight';
 import NotFound from '@/pages/not-found';
-import { setAuthTokenGetter } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-function AuthTokenBridge() {
-  const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    setAuthTokenGetter(isSignedIn ? () => getToken() : null);
-    return () => setAuthTokenGetter(null);
-  }, [getToken, isSignedIn]);
-  return null;
-}
 
 function Router() {
   return (
@@ -39,7 +28,6 @@ function Router() {
           <Route path="/bars" component={BarBrowser} />
           <Route path="/bars/:barId" component={BarProfile} />
           <Route path="/dashboard" component={Dashboard} />
-          <Route path="/sign-in/*?" component={() => <SignIn routing="path" path="/sign-in" />} />
           <Route path="/profile" component={PatronProfile} />
           <Route path="/trending" component={Trending} />
           <Route path="/spin" component={SpinTheNight} />
@@ -62,17 +50,16 @@ function App() {
   }, []);
 
   return (
-    <ClerkProvider publishableKey={clerkPubKey}>
-      <QueryClientProvider client={queryClient}>
-        <AuthTokenBridge />
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
             <Router />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

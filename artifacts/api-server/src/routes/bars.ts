@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, like, desc } from "drizzle-orm";
 import { db, barsTable, drinksTable, barFollowsTable } from "@workspace/db";
-import { getAuthenticatedUser } from "../lib/auth";
+import { requireBarOwner, requireSignedIn } from "../lib/authorization";
 
 const router = Router();
 
@@ -71,15 +71,16 @@ router.get("/bars", async (req, res): Promise<void> => {
 });
 
 router.get("/bars/mine", async (req, res): Promise<void> => {
-  const owner = await getAuthenticatedUser(req, res);
-  if (!owner) return;
-
-  const bars = await db.select().from(barsTable).where(eq(barsTable.ownerId, owner.id));
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return;
+  const bars = await db.select().from(barsTable).where(eq(barsTable.ownerId, userId)).orderBy(desc(barsTable.createdAt));
   res.json(await Promise.all(bars.map(barWithStats)));
 });
 
 router.post("/bars", async (req, res): Promise<void> => {
-  const { name, description, address, coverImageUrl, subscriptionActive } = req.body;
+  const ownerId = requireSignedIn(req, res);
+  if (ownerId === null) return;
+  const { name, description, address, coverImageUrl } = req.body;
   if (!name) { res.status(400).json({ error: "name required" }); return; }
   const { location, error } = parseLocation(req.body);
   if (error) { res.status(400).json({ error }); return; }
@@ -87,9 +88,6 @@ router.post("/bars", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Verified latitude and longitude are required when creating a bar." });
     return;
   }
-  const owner = await getAuthenticatedUser(req, res);
-  if (!owner) return;
-
   const [bar] = await db
     .insert(barsTable)
     .values({
@@ -97,8 +95,8 @@ router.post("/bars", async (req, res): Promise<void> => {
       description,
       address,
       coverImageUrl,
-      ownerId: owner.id,
-      subscriptionActive: subscriptionActive ?? false,
+      ownerId,
+      subscriptionActive: false,
       ...location,
       locationVerifiedAt: new Date(),
     })
@@ -129,16 +127,9 @@ router.put("/bars/:barId", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
-  const [existingBar] = await db.select({ ownerId: barsTable.ownerId }).from(barsTable).where(eq(barsTable.id, barId));
-  if (!existingBar) { res.status(404).json({ error: "Bar not found" }); return; }
-  const owner = await getAuthenticatedUser(req, res);
-  if (!owner) return;
-  if (existingBar.ownerId !== owner.id) {
-    res.status(403).json({ error: "Only this venue's owner can update its location." });
-    return;
-  }
+  if (!await requireBarOwner(req, res, barId)) return;
 
-  const { name, description, address, coverImageUrl, subscriptionActive } = req.body;
+  const { name, description, address, coverImageUrl } = req.body;
   const { location, error } = parseLocation(req.body);
   if (error) { res.status(400).json({ error }); return; }
 
@@ -147,7 +138,6 @@ router.put("/bars/:barId", async (req, res): Promise<void> => {
   if (description !== undefined) updates.description = description;
   if (address !== undefined) updates.address = address;
   if (coverImageUrl !== undefined) updates.coverImageUrl = coverImageUrl;
-  if (subscriptionActive !== undefined) updates.subscriptionActive = subscriptionActive;
   if (location) {
     updates.latitude = location.latitude;
     updates.longitude = location.longitude;
