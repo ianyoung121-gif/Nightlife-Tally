@@ -78,7 +78,9 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(clerkMiddleware({ publishableKey: process.env.CLERK_PUBLISHABLE_KEY }));
+if (process.env.CLERK_SECRET_KEY) {
+  app.use(clerkMiddleware({ publishableKey: process.env.CLERK_PUBLISHABLE_KEY }));
+}
 app.use(authMiddleware);
 
 app.use("/api", router);
