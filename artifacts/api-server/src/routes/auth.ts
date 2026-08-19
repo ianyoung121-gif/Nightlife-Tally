@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from "express";
+import { eq } from "drizzle-orm";
 import * as oidc from "openid-client";
+import { barFollowsTable, db, usersTable } from "@workspace/db";
 import {
   clearSession,
   createSession,
@@ -138,6 +140,22 @@ router.post("/mobile-auth/token-exchange", async (req, res): Promise<void> => {
 router.post("/mobile-auth/logout", async (req, res): Promise<void> => {
   const sid = getSessionId(req);
   if (sid) await deleteSession(sid);
+  res.json({ success: true });
+});
+
+router.delete("/auth/account", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Sign in is required" });
+    return;
+  }
+
+  const userId = req.user.id;
+  await db.transaction(async (tx) => {
+    await tx.delete(barFollowsTable).where(eq(barFollowsTable.userId, userId));
+    await tx.delete(usersTable).where(eq(usersTable.id, userId));
+  });
+
+  res.clearCookie(SESSION_COOKIE, { path: "/" });
   res.json({ success: true });
 });
 

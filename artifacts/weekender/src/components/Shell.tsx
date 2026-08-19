@@ -66,6 +66,17 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
+      <footer className="border-t border-border/40 bg-background/70">
+        <div className="container mx-auto flex flex-col gap-3 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>Plan a safe ride. Never drink and drive.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="transition-colors hover:text-white">Privacy</Link>
+            <Link href="/support" className="transition-colors hover:text-white">Support</Link>
+            <Link href="/delete-account" className="transition-colors hover:text-white">Delete account</Link>
+          </div>
+        </div>
+      </footer>
+
       <nav className="md:hidden fixed bottom-0 z-50 w-full border-t border-border/40 bg-background/90 backdrop-blur-lg pb-safe">
         <div className="flex items-center justify-around h-16 px-4">
           {navItems.map((item) => {

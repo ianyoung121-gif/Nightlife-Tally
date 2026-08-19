@@ -21,6 +21,7 @@ interface AuthState {
   isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -56,8 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.assign(`/api/logout?returnTo=${encodeURIComponent(basePath())}`);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    const response = await fetch("/api/auth/account", {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!response.ok) throw new Error("Account deletion failed");
+    setUser(null);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), login, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

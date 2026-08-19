@@ -12,6 +12,7 @@ interface AuthState {
     isAuthenticated: boolean;
     login: () => void;
     logout: () => void;
+    deleteAccount: () => Promise<void>;
 }
 export declare function AuthProvider({ children }: {
     children: ReactNode;

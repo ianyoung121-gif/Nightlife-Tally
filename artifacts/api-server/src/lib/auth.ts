@@ -101,6 +101,7 @@ export async function createSession(data: SessionData): Promise<string> {
   const sid = crypto.randomBytes(32).toString("hex");
   await db.insert(sessionsTable).values({
     sid,
+    userId: data.user.id,
     sess: data as unknown as Record<string, unknown>,
     expire: new Date(Date.now() + SESSION_TTL),
   });

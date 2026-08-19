@@ -16,6 +16,9 @@ import { PatronProfile } from '@/pages/PatronProfile';
 import { Trending } from '@/pages/Trending';
 import { SpinTheNight } from '@/pages/SpinTheNight';
 import NotFound from '@/pages/not-found';
+import { Privacy } from '@/pages/Privacy';
+import { Support } from '@/pages/Support';
+import { DeleteAccount } from '@/pages/DeleteAccount';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +34,9 @@ function Router() {
           <Route path="/profile" component={PatronProfile} />
           <Route path="/trending" component={Trending} />
           <Route path="/spin" component={SpinTheNight} />
+          <Route path="/privacy" component={Privacy} />
+          <Route path="/support" component={Support} />
+          <Route path="/delete-account" component={DeleteAccount} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

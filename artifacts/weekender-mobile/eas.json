@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 16.0.0"
+  },
+  "build": {
+    "play-internal": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://nightlifetally.com",
+        "EXPO_PUBLIC_REPL_ID": "c916bfe4-67d0-4077-892f-2bbc724cd781:jczd5cta"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://nightlifetally.com",
+        "EXPO_PUBLIC_REPL_ID": "c916bfe4-67d0-4077-892f-2bbc724cd781:jczd5cta"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "play-internal": {
+      "android": {
+        "track": "internal"
+      }
+    }
+  }
+}

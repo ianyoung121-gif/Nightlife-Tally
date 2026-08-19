@@ -22,13 +22,16 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function apiBaseUrl(): string {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  return domain ? `https://${domain}` : "";
+  return (
+    process.env.EXPO_PUBLIC_API_URL ??
+    (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "")
+  );
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -97,7 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), login, logout }}>{children}</AuthContext.Provider>;
+  const deleteAccount = useCallback(async () => {
+    const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    if (!token) return;
+
+    const result = await fetch(`${apiBaseUrl()}/api/auth/account`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!result.ok) throw new Error("Account deletion failed");
+
+    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    setUser(null);
+  }, []);
+
+  return <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), login, logout, deleteAccount }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

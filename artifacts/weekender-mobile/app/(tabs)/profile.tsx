@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useGetTrendingStats } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
@@ -10,7 +10,26 @@ export default function ProfileScreen() {
   const colors = useColors();
   const statsQuery = useGetTrendingStats();
   const location = useDeviceLocation();
-  const { user, isLoading, login, logout } = useAuth();
+  const { user, isLoading, login, logout, deleteAccount } = useAuth();
+
+  const confirmAccountDeletion = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently removes your Weekender account, active sessions, and saved follows. Anonymous drink tallies remain aggregate community data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () => {
+            void deleteAccount().catch(() => {
+              Alert.alert('Could not delete account', 'Please try again or contact support.');
+            });
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={[styles.page, { backgroundColor: colors.background }]}>
@@ -32,6 +51,12 @@ export default function ProfileScreen() {
           </View>
           {!isLoading && <Pressable onPress={user ? logout : login}><Text style={[styles.enable, { color: colors.accent }]}>{user ? 'LOG OUT' : 'LOG IN'}</Text></Pressable>}
         </View>
+        {user && (
+          <Pressable onPress={confirmAccountDeletion} style={[styles.deleteAccount, { borderColor: colors.destructive + '66' }]}>
+            <Feather name="trash-2" size={15} color={colors.destructive} />
+            <Text style={[styles.deleteAccountText, { color: colors.destructive }]}>DELETE ACCOUNT</Text>
+          </Pressable>
+        )}
 
         <View style={[styles.communityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[styles.communityIcon, { backgroundColor: colors.primary }]}>
@@ -109,6 +134,8 @@ const styles = StyleSheet.create({
   settingTitle: { fontFamily: 'Outfit_700Bold', fontSize: 16 },
   settingDetail: { fontFamily: 'Outfit_400Regular', fontSize: 12, lineHeight: 17 },
   enable: { fontFamily: 'SpaceMono_700Bold', fontSize: 10, letterSpacing: 0.6 },
+  deleteAccount: { minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  deleteAccountText: { fontFamily: 'SpaceMono_700Bold', fontSize: 10, letterSpacing: 0.7 },
   safety: { borderWidth: 1, borderRadius: 15, padding: 15, flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
   safetyCopy: { flex: 1, gap: 3 },
   safetyTitle: { fontFamily: 'Outfit_700Bold', fontSize: 16 },

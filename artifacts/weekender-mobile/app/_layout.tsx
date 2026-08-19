@@ -24,8 +24,10 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
-const domain = process.env.EXPO_PUBLIC_DOMAIN;
-setBaseUrl(domain ? `https://${domain}` : null);
+const apiBaseUrl =
+  process.env.EXPO_PUBLIC_API_URL ??
+  (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : null);
+setBaseUrl(apiBaseUrl);
 setAuthTokenGetter(() => SecureStore.getItemAsync(AUTH_TOKEN_KEY));
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
