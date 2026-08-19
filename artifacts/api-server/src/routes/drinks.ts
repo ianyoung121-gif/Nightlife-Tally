@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db, drinksTable, talliesTable, barsTable } from "@workspace/db";
 
 const router = Router();
@@ -51,7 +51,7 @@ router.post("/drinks/:drinkId/tally", async (req, res): Promise<void> => {
   // increment tally count — no user ID stored, tallies are anonymous by design
   const [drink] = await db
     .update(drinksTable)
-    .set({ tallyCount: drinksTable.tallyCount + 1 } as any)
+    .set({ tallyCount: sql<number>`${drinksTable.tallyCount} + 1` })
     .where(eq(drinksTable.id, drinkId))
     .returning();
   if (!drink) { res.status(404).json({ error: "Drink not found" }); return; }
