@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { useGetBar, useListBarDrinks, useListBarSpecials, useTallyDrink } from '@workspace/api-client-react';
+import { DrinkIcon } from '@/components/DrinkIcon';
 import { useColors } from '@/hooks/useColors';
 
 export default function BarDetailScreen() {
@@ -86,6 +87,9 @@ export default function BarDetailScreen() {
           <View style={styles.drinkList}>
             {(drinksQuery.data ?? []).map((drink) => (
               <View key={drink.id} style={[styles.drink, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.drinkIcon, { backgroundColor: colors.primary + '24' }]}>
+                  <DrinkIcon name={drink.name} category={drink.category} color={colors.primary} size={22} />
+                </View>
                 <View style={styles.drinkCopy}>
                   <Text style={[styles.drinkName, { color: colors.foreground }]}>{drink.name}</Text>
                   <Text style={[styles.drinkMeta, { color: colors.mutedForeground }]}>
@@ -163,6 +167,7 @@ const styles = StyleSheet.create({
   inlineLoader: { marginVertical: 28 },
   drinkList: { paddingHorizontal: 20, gap: 9 },
   drink: { borderWidth: 1, borderRadius: 14, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  drinkIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   drinkCopy: { flex: 1, gap: 3 },
   drinkName: { fontFamily: 'Outfit_700Bold', fontSize: 17 },
   drinkMeta: { fontFamily: 'SpaceMono_400Regular', fontSize: 10 },

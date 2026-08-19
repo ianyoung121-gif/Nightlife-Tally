@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useGetTrendingStats } from '@workspace/api-client-react';
 import { VenueCard } from '@/components/VenueCard';
+import { DrinkIcon } from '@/components/DrinkIcon';
 import { useColors } from '@/hooks/useColors';
 
 export default function DiscoverScreen() {
@@ -88,12 +89,15 @@ export default function DiscoverScreen() {
           <>
             <View style={styles.sectionHeading}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>What’s being ordered</Text>
-              <Feather name="zap" size={18} color={colors.accent} />
+              <DrinkIcon color={colors.accent} size={20} />
             </View>
             <View style={styles.drinkList}>
               {(stats?.topDrinks ?? []).slice(0, 4).map((drink, index) => (
                 <View key={drink.id} style={[styles.drinkRow, { backgroundColor: colors.muted }]}>
                   <Text style={[styles.rank, { color: colors.secondary }]}>0{index + 1}</Text>
+                  <View style={[styles.drinkIcon, { backgroundColor: colors.primary + '24' }]}>
+                    <DrinkIcon name={drink.name} color={colors.primary} size={22} />
+                  </View>
                   <View style={styles.drinkCopy}>
                     <Text style={[styles.drinkName, { color: colors.foreground }]}>{drink.name}</Text>
                     <Text style={[styles.drinkBar, { color: colors.mutedForeground }]}>{drink.barName ?? 'Local favorite'}</Text>
@@ -135,6 +139,7 @@ const styles = StyleSheet.create({
   drinkList: { gap: 8 },
   drinkRow: { minHeight: 61, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rank: { fontFamily: 'SpaceMono_700Bold', fontSize: 11 },
+  drinkIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   drinkCopy: { flex: 1, gap: 2 },
   drinkName: { fontFamily: 'Outfit_700Bold', fontSize: 16 },
   drinkBar: { fontFamily: 'SpaceMono_400Regular', fontSize: 10 },
