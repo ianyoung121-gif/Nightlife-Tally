@@ -162,3 +162,6 @@ overrides:
   "brace-expansion@5": "5.0.9"
   # image-size@1.2.1 is vulnerable (CVE-2025-71329); upgrade to 2.0.2
   "image-size@1": "2.0.2"
+
+patchedDependencies:
+  "image-size@2.0.2": "patches/image-size@2.0.2.patch"

@@ -155,6 +155,11 @@ overrides:
   brace-expansion@5: 5.0.9
   image-size@1: 2.0.2
 
+patchedDependencies:
+  image-size@2.0.2:
+    hash: 2e1c5f1eb2575829e64c2a5d9550251a5fefc27da7d8be73bd17d98051800eba
+    path: patches/image-size@2.0.2.patch
+
 importers:
 
   .:
@@ -10142,7 +10147,7 @@ snapshots:
 
   ignore@5.3.2: {}
 
-  image-size@2.0.2: {}
+  image-size@2.0.2(patch_hash=2e1c5f1eb2575829e64c2a5d9550251a5fefc27da7d8be73bd17d98051800eba): {}
 
   imurmurhash@0.1.4: {}
 
@@ -10720,7 +10725,7 @@ snapshots:
       flow-enums-runtime: 0.0.6
       graceful-fs: 4.2.11
       hermes-parser: 0.32.0
-      image-size: 2.0.2
+      image-size: 2.0.2(patch_hash=2e1c5f1eb2575829e64c2a5d9550251a5fefc27da7d8be73bd17d98051800eba)
       invariant: 2.2.4
       jest-worker: 29.7.0
       jsc-safe-url: 0.2.4
@@ -10766,7 +10771,7 @@ snapshots:
       flow-enums-runtime: 0.0.6
       graceful-fs: 4.2.11
       hermes-parser: 0.35.0
-      image-size: 2.0.2
+      image-size: 2.0.2(patch_hash=2e1c5f1eb2575829e64c2a5d9550251a5fefc27da7d8be73bd17d98051800eba)
       invariant: 2.2.4
       jest-worker: 29.7.0
       jsc-safe-url: 0.2.4

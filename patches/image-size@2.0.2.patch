@@ -1,0 +1,39 @@
+diff --git a/dist/index.cjs b/dist/index.cjs
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -2,6 +2,7 @@
+ 
+ Object.defineProperty(exports, '__esModule', { value: true });
+ 
++var fs = require("node:fs");
+ // lib/types/utils.ts
+ var decoder = new TextDecoder();
+ var toUTF8String = (input, start = 0, end = input.length) => decoder.decode(input.slice(start, end));
+@@ -968,6 +969,9 @@
+   disabledTypes: []
+ };
+ function imageSize(input) {
++  if (typeof input === "string") {
++    input = fs.readFileSync(input);
++  }
+   const type = detector(input);
+   if (typeof type !== "undefined") {
+     if (globalOptions.disabledTypes.indexOf(type) > -1) {
+diff --git a/dist/index.mjs b/dist/index.mjs
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -1,3 +1,4 @@
++import { readFileSync } from "node:fs";
+ // lib/types/utils.ts
+ var decoder = new TextDecoder();
+ var toUTF8String = (input, start = 0, end = input.length) => decoder.decode(input.slice(start, end));
+@@ -964,6 +965,9 @@
+   disabledTypes: []
+ };
+ function imageSize(input) {
++  if (typeof input === "string") {
++    input = readFileSync(input);
++  }
+   const type = detector(input);
+   if (typeof type !== "undefined") {
+     if (globalOptions.disabledTypes.indexOf(type) > -1) {
