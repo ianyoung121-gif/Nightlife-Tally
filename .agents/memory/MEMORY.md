@@ -5,3 +5,4 @@
 - [Node integration-test child processes](node-integration-test-child-processes.md) — use a filesystem cwd and error-safe shutdown when spawning API servers from Node tests.
 - [Hybrid U.S. venue discovery](google-places-scope.md) — curated profiles come first; transient Google Places results fill nearby catalog gaps without storing location or provider data.
 - [Expo Metro image-size compatibility](expo-metro-image-size.md) — retain the secure image-size v2 override with its package patch; Metro 0.83 still supplies asset file paths.
+- [Android icon rendering](android-icon-rendering.md) — mobile UI uses SVG paths for icons because Expo Go on Android rendered icon-font glyphs as missing-character boxes.

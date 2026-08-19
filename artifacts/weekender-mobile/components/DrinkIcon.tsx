@@ -1,7 +1,7 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
+import { AppIcon, type AppIconName } from '@/components/AppIcon';
 
-type DrinkIconName = keyof typeof MaterialCommunityIcons.glyphMap;
+type DrinkIconName = Extract<AppIconName, 'beer' | 'bottle-soda' | 'coffee' | 'cup' | 'glass-cocktail' | 'glass-wine' | 'liquor'>;
 
 type DrinkIconProps = {
   name?: string | null;
@@ -23,5 +23,5 @@ function iconForDrink(name?: string | null, category?: string | null): DrinkIcon
 }
 
 export function DrinkIcon({ name, category, color, size = 22 }: DrinkIconProps) {
-  return <MaterialCommunityIcons name={iconForDrink(name, category)} size={size} color={color} />;
+  return <AppIcon name={iconForDrink(name, category)} size={size} color={color} />;
 }

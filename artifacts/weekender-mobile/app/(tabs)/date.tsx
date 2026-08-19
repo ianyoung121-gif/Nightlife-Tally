@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon as Feather, type AppIconName } from '@/components/AppIcon';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import type { Bar } from '@workspace/api-client-react';
@@ -28,7 +28,7 @@ const dateDares = [
 type PlanItem = {
   slot: string;
   time: string;
-  icon: keyof typeof Feather.glyphMap;
+  icon: AppIconName;
   accent: 'primary' | 'secondary' | 'accent';
   bar?: Bar;
   detail: string;

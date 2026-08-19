@@ -19,7 +19,6 @@ import {
   SpaceMono_400Regular,
   SpaceMono_700Bold,
 } from '@expo-google-fonts/space-mono';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -54,8 +53,6 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    ...Feather.font,
-    ...MaterialCommunityIcons.font,
     Outfit_400Regular,
     Outfit_600SemiBold,
     Outfit_700Bold,

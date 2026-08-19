@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon as Feather } from '@/components/AppIcon';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
 import { useGetBar, useListBarDrinks, useListBarSpecials, useTallyDrink } from '@workspace/api-client-react';

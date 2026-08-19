@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { AppIcon as Feather } from '@/components/AppIcon';
 import { useRouter } from 'expo-router';
 import { useGetTrendingStats } from '@workspace/api-client-react';
 import { VenueCard } from '@/components/VenueCard';
