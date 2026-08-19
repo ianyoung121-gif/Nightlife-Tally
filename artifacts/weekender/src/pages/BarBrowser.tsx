@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Search, MapPin, Loader2, Navigation } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useUserLocation, distanceMiles } from "@/hooks/useUserLocation";
+import { useUserLocation, distanceMiles, hasVerifiedVenueLocation } from "@/hooks/useUserLocation";
 
 export function BarBrowser() {
   const [search, setSearch] = useState("");
@@ -32,16 +32,16 @@ export function BarBrowser() {
     if (
       sortByDistance &&
       locState.status === "granted" &&
-      bars.some((b) => b.latitude != null && b.longitude != null)
+      bars.some(hasVerifiedVenueLocation)
     ) {
       const { latitude: uLat, longitude: uLng } = locState.location;
       return [...bars].sort((a, b) => {
         const dA =
-          a.latitude != null && a.longitude != null
+          hasVerifiedVenueLocation(a)
             ? distanceMiles(uLat, uLng, a.latitude, a.longitude)
             : Infinity;
         const dB =
-          b.latitude != null && b.longitude != null
+          hasVerifiedVenueLocation(b)
             ? distanceMiles(uLat, uLng, b.latitude, b.longitude)
             : Infinity;
         return dA - dB;
@@ -163,8 +163,7 @@ export function BarBrowser() {
                 distanceMi={
                   sortByDistance &&
                   locState.status === "granted" &&
-                  bar.latitude != null &&
-                  bar.longitude != null
+                  hasVerifiedVenueLocation(bar)
                     ? distanceMiles(
                         locState.location.latitude,
                         locState.location.longitude,

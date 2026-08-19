@@ -7,7 +7,7 @@ import type { Bar } from '@workspace/api-client-react';
 import { useListBars } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useDeviceLocation } from '@/context/LocationContext';
-import { distanceMiles, formatDistance } from '@/utils/location';
+import { distanceMiles, formatDistance, hasVerifiedVenueLocation } from '@/utils/location';
 
 const dinnerIdeas = [
   { title: 'Candlelit Italian', detail: 'Pasta, wine, slow conversation.' },
@@ -51,13 +51,17 @@ export default function DateNightScreen() {
   const location = useDeviceLocation();
   const [plan, setPlan] = useState<PlanItem[] | null>(null);
   const [planning, setPlanning] = useState(false);
+  const verifiedBars = useMemo(
+    () => (barsQuery.data ?? []).filter(hasVerifiedVenueLocation),
+    [barsQuery.data],
+  );
 
   const nearbyBars = useMemo(() => {
     if (!barsQuery.data) return [];
     const enriched = barsQuery.data.map((bar) => ({
       bar,
       distance:
-        location.coordinates && typeof bar.latitude === 'number' && typeof bar.longitude === 'number'
+        location.coordinates && hasVerifiedVenueLocation(bar)
           ? distanceMiles(location.coordinates, { latitude: bar.latitude, longitude: bar.longitude })
           : null,
     }));
@@ -69,7 +73,7 @@ export default function DateNightScreen() {
     setPlanning(true);
     setTimeout(() => {
       const localPool = nearbyBars.filter((item) => item.distance !== null).map((item) => item.bar);
-      const source = localPool.length > 0 ? localPool : nearbyBars.map((item) => item.bar);
+      const source = localPool.length > 0 ? localPool : verifiedBars;
       const picks = shuffled(source).slice(0, 3);
       const dinner = dinnerIdeas[Math.floor(Math.random() * dinnerIdeas.length)];
       const dares = shuffled(dateDares);
@@ -129,7 +133,9 @@ export default function DateNightScreen() {
         <View style={[styles.locationHint, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Feather name="navigation" size={17} color={colors.accent} />
           <Text style={[styles.locationHintText, { color: colors.mutedForeground }]}>
-            {location.status === 'ready'
+            {verifiedBars.length === 0
+              ? 'Date plans unlock once venue owners verify their pins.'
+              : location.status === 'ready'
               ? 'Nearby venues will be preferred in your plan.'
               : 'Add location to prioritize bars around you.'}
           </Text>
@@ -143,7 +149,7 @@ export default function DateNightScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Plan date night"
-          disabled={planning || barsQuery.isLoading}
+          disabled={planning || barsQuery.isLoading || verifiedBars.length === 0}
           onPress={createPlan}
           style={({ pressed }) => [
             styles.planButton,
@@ -152,7 +158,7 @@ export default function DateNightScreen() {
         >
           {planning ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="heart" size={20} color={colors.primaryForeground} />}
           <Text style={[styles.planButtonText, { color: colors.primaryForeground }]}>
-            {planning ? 'BUILDING YOUR NIGHT' : plan ? 'REPLAN THE NIGHT' : 'PLAN DATE NIGHT'}
+            {planning ? 'BUILDING YOUR NIGHT' : verifiedBars.length === 0 ? 'VENUE PINS NEEDED' : plan ? 'REPLAN THE NIGHT' : 'PLAN DATE NIGHT'}
           </Text>
         </Pressable>
 
@@ -161,7 +167,7 @@ export default function DateNightScreen() {
             {plan.map((item, index) => {
               const accentColor = colors[item.accent];
               const distance =
-                item.bar && location.coordinates && typeof item.bar.latitude === 'number' && typeof item.bar.longitude === 'number'
+                item.bar && location.coordinates && hasVerifiedVenueLocation(item.bar)
                   ? distanceMiles(location.coordinates, { latitude: item.bar.latitude, longitude: item.bar.longitude })
                   : null;
               return (

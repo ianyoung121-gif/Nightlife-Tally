@@ -22,6 +22,8 @@ export interface Bar {
   latitude?: number | null;
   /** @nullable */
   longitude?: number | null;
+  /** @nullable */
+  locationVerifiedAt?: Date | null;
   followerCount: number;
   totalTallies: number;
   createdAt: string;

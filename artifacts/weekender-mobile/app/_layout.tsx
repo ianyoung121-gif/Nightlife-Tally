@@ -7,6 +7,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LocationProvider } from '@/context/LocationContext';
 import colors from '@/constants/colors';
 import { setBaseUrl } from '@workspace/api-client-react';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { ClerkProvider, useAuth } from '@clerk/expo';
 import {
   Outfit_400Regular,
   Outfit_600SemiBold,
@@ -47,6 +49,15 @@ function RootLayoutNav() {
   );
 }
 
+function AuthTokenBridge() {
+  const { getToken, isSignedIn } = useAuth();
+  useEffect(() => {
+    setAuthTokenGetter(isSignedIn ? () => getToken() : null);
+    return () => setAuthTokenGetter(null);
+  }, [getToken, isSignedIn]);
+  return null;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Outfit_400Regular,
@@ -66,19 +77,22 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <LocationProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <StatusBar style="light" />
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </LocationProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    <ClerkProvider publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <AuthTokenBridge />
+            <LocationProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <StatusBar style="light" />
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </LocationProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </SafeAreaProvider>
+    </ClerkProvider>
   );
 }

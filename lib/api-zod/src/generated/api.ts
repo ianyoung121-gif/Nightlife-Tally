@@ -67,6 +67,7 @@ export const GetUserFollowingResponseItem = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -108,6 +109,7 @@ export const ListBarsResponseItem = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -118,6 +120,14 @@ export const ListBarsResponse = zod.array(ListBarsResponseItem)
 /**
  * @summary Create a bar profile
  */
+export const createBarBodyLatitudeMin = -90;
+export const createBarBodyLatitudeMax = 90;
+
+export const createBarBodyLongitudeMin = -180;
+export const createBarBodyLongitudeMax = 180;
+
+
+
 export const CreateBarBody = zod.object({
   "name": zod.string(),
   "description": zod.string().optional(),
@@ -125,8 +135,8 @@ export const CreateBarBody = zod.object({
   "coverImageUrl": zod.string().optional(),
   "ownerId": zod.number().optional(),
   "subscriptionActive": zod.boolean().optional(),
-  "latitude": zod.number().optional(),
-  "longitude": zod.number().optional()
+  "latitude": zod.number().min(createBarBodyLatitudeMin).max(createBarBodyLatitudeMax),
+  "longitude": zod.number().min(createBarBodyLongitudeMin).max(createBarBodyLongitudeMax)
 })
 
 export const CreateBarResponse = zod.object({
@@ -139,6 +149,7 @@ export const CreateBarResponse = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -158,6 +169,7 @@ export const GetTrendingBarsResponseItem = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -182,6 +194,7 @@ export const GetBarResponse = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -195,14 +208,22 @@ export const UpdateBarParams = zod.object({
   "barId": zod.coerce.number()
 })
 
+export const updateBarBodyLatitudeMin = -90;
+export const updateBarBodyLatitudeMax = 90;
+
+export const updateBarBodyLongitudeMin = -180;
+export const updateBarBodyLongitudeMax = 180;
+
+
+
 export const UpdateBarBody = zod.object({
   "name": zod.string().optional(),
   "description": zod.string().optional(),
   "address": zod.string().optional(),
   "coverImageUrl": zod.string().optional(),
   "subscriptionActive": zod.boolean().optional(),
-  "latitude": zod.number().optional(),
-  "longitude": zod.number().optional()
+  "latitude": zod.number().min(updateBarBodyLatitudeMin).max(updateBarBodyLatitudeMax).optional(),
+  "longitude": zod.number().min(updateBarBodyLongitudeMin).max(updateBarBodyLongitudeMax).optional()
 })
 
 export const UpdateBarResponse = zod.object({
@@ -215,6 +236,7 @@ export const UpdateBarResponse = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
@@ -579,6 +601,7 @@ export const GetTrendingStatsResponse = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()

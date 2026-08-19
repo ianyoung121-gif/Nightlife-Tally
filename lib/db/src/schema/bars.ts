@@ -12,6 +12,7 @@ export const barsTable = pgTable("bars", {
   subscriptionActive: boolean("subscription_active").notNull().default(false),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
+  locationVerifiedAt: timestamp("location_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -13,6 +13,14 @@ export interface BarInput {
   coverImageUrl?: string;
   ownerId?: number;
   subscriptionActive?: boolean;
-  latitude?: number;
-  longitude?: number;
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
 }

@@ -45,6 +45,8 @@ export interface Bar {
   latitude?: number | null;
   /** @nullable */
   longitude?: number | null;
+  /** @nullable */
+  locationVerifiedAt?: string | null;
   followerCount: number;
   totalTallies: number;
   createdAt: string;
@@ -57,8 +59,16 @@ export interface BarInput {
   coverImageUrl?: string;
   ownerId?: number;
   subscriptionActive?: boolean;
-  latitude?: number;
-  longitude?: number;
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
 }
 
 export interface BarUpdate {
@@ -67,7 +77,15 @@ export interface BarUpdate {
   address?: string;
   coverImageUrl?: string;
   subscriptionActive?: boolean;
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
   latitude?: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
   longitude?: number;
 }
 

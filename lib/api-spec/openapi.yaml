@@ -667,6 +667,9 @@ components:
           type: ["number", "null"]
         longitude:
           type: ["number", "null"]
+        locationVerifiedAt:
+          type: ["string", "null"]
+          format: date-time
         followerCount:
           type: number
         totalTallies:
@@ -698,10 +701,16 @@ components:
           type: boolean
         latitude:
           type: number
+          minimum: -90
+          maximum: 90
         longitude:
           type: number
+          minimum: -180
+          maximum: 180
       required:
         - name
+        - latitude
+        - longitude
 
     BarUpdate:
       type: object
@@ -718,8 +727,12 @@ components:
           type: boolean
         latitude:
           type: number
+          minimum: -90
+          maximum: 90
         longitude:
           type: number
+          minimum: -180
+          maximum: 180
 
     BarStats:
       type: object

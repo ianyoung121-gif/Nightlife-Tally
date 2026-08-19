@@ -22,8 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Flame, Star, Activity, Trash2, Plus, Users, Tag, Lock, Copy, Check } from "lucide-react";
+import { Flame, Star, Activity, Trash2, Plus, Users, Tag, Lock, Copy, Check, LocateFixed, MapPin, ShieldCheck } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DISCOUNT_TYPES = [
@@ -101,9 +103,22 @@ function CouponRow({ coupon, onDelete }: { coupon: { id: number; code: string; t
 }
 
 export function Dashboard() {
-  const barId = 1; // Mock owner's bar ID
+  const { isSignedIn, getToken } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: ownedBars = [], isLoading: loadingOwnedBars } = useQuery({
+    queryKey: ["my-bars"],
+    enabled: isSignedIn,
+    queryFn: async () => {
+      const token = await getToken();
+      const response = await fetch("/api/bars/mine", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error("Unable to load your venues.");
+      return response.json() as Promise<Array<{ id: number }>>;
+    },
+  });
+  const barId = ownedBars[0]?.id ?? 0;
 
   const { data: bar, isLoading: loadingBar } = useGetBar(barId, { query: { enabled: true, queryKey: getGetBarQueryKey(barId) } });
   const { data: stats } = useGetBarStats(barId, { query: { enabled: true, queryKey: getGetBarStatsQueryKey(barId) } });
@@ -171,10 +186,11 @@ export function Dashboard() {
     }
   });
 
-  const [barForm, setBarForm] = useState({ name: "", description: "", address: "", coverImageUrl: "" });
+  const [barForm, setBarForm] = useState({ name: "", description: "", address: "", coverImageUrl: "", latitude: "", longitude: "" });
   const [newSpecial, setNewSpecial] = useState({ title: "", description: "" });
   const [newDrink, setNewDrink] = useState({ name: "", description: "", price: "" });
   const [newCoupon, setNewCoupon] = useState({ title: "", description: "", discountType: "percentage", discountValue: "", expiresAt: "", maxUses: "" });
+  const [isLocatingVenue, setIsLocatingVenue] = useState(false);
 
   const initialized = useRef(false);
 
@@ -184,7 +200,9 @@ export function Dashboard() {
         name: bar.name || "",
         description: bar.description || "",
         address: bar.address || "",
-        coverImageUrl: bar.coverImageUrl || ""
+        coverImageUrl: bar.coverImageUrl || "",
+        latitude: bar.latitude?.toString() || "",
+        longitude: bar.longitude?.toString() || "",
       });
       initialized.current = true;
     }
@@ -192,7 +210,67 @@ export function Dashboard() {
 
   const handleUpdateBar = (e: React.FormEvent) => {
     e.preventDefault();
-    updateBar.mutate({ barId, data: barForm });
+    const latitude = barForm.latitude.trim();
+    const longitude = barForm.longitude.trim();
+
+    if (Boolean(latitude) !== Boolean(longitude)) {
+      toast({ title: "Add both latitude and longitude" });
+      return;
+    }
+
+    const location =
+      latitude && longitude
+        ? { latitude: Number(latitude), longitude: Number(longitude) }
+        : undefined;
+
+    if (
+      location &&
+      (!Number.isFinite(location.latitude) ||
+        location.latitude < -90 ||
+        location.latitude > 90 ||
+        !Number.isFinite(location.longitude) ||
+        location.longitude < -180 ||
+        location.longitude > 180)
+    ) {
+      toast({ title: "Enter a valid venue pin", description: "Latitude must be -90 to 90 and longitude must be -180 to 180." });
+      return;
+    }
+
+    updateBar.mutate({
+      barId,
+      data: {
+        name: barForm.name,
+        description: barForm.description || undefined,
+        address: barForm.address || undefined,
+        coverImageUrl: barForm.coverImageUrl || undefined,
+        ...(location ?? {}),
+      },
+    });
+  };
+
+  const useCurrentVenueLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Location is unavailable", description: "Enter the venue coordinates manually instead." });
+      return;
+    }
+
+    setIsLocatingVenue(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setBarForm((current) => ({
+          ...current,
+          latitude: position.coords.latitude.toFixed(6),
+          longitude: position.coords.longitude.toFixed(6),
+        }));
+        setIsLocatingVenue(false);
+        toast({ title: "Venue location captured", description: "Review the pin, then save your profile to verify it." });
+      },
+      (error) => {
+        setIsLocatingVenue(false);
+        toast({ title: "Could not get your location", description: error.message || "Enter the venue coordinates manually instead." });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
   };
 
   const handleCreateSpecial = (e: React.FormEvent) => {
@@ -223,12 +301,14 @@ export function Dashboard() {
     });
   };
 
-  if (loadingBar) return (
+  if (!isSignedIn) return <div className="p-8 text-center text-muted-foreground"><a className="text-primary underline" href="/sign-in">Sign in</a> to manage your venue.</div>;
+  if (loadingOwnedBars || loadingBar) return (
     <div className="p-8 text-center">
       <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
-  if (!bar) return <div className="p-8 text-center text-muted-foreground">Bar not found (ID: 1)</div>;
+  if (!barId) return <div className="p-8 text-center text-muted-foreground">No venue profile is linked to this account yet.</div>;
+  if (!bar) return <div className="p-8 text-center text-muted-foreground">Venue unavailable.</div>;
 
   const isSubscribed = bar.subscriptionActive;
 
@@ -306,6 +386,52 @@ export function Dashboard() {
                     onChange={e => setBarForm({...barForm, description: e.target.value})}
                     className="w-full min-h-[100px] p-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
+                </div>
+                <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 rounded-lg bg-accent/15 p-2 text-accent">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-bold">Verified venue pin</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bar.locationVerifiedAt
+                          ? `Verified ${new Date(bar.locationVerifiedAt).toLocaleDateString()}. Update it if the pin is no longer exact.`
+                          : "Required for nearby lists, crawls, and Date Night. Stand at your venue or enter the pin manually."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-mono text-muted-foreground">Latitude</label>
+                      <Input
+                        inputMode="decimal"
+                        placeholder="e.g. 40.712776"
+                        value={barForm.latitude}
+                        onChange={e => setBarForm({ ...barForm, latitude: e.target.value })}
+                        className="bg-background"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-mono text-muted-foreground">Longitude</label>
+                      <Input
+                        inputMode="decimal"
+                        placeholder="e.g. -74.005974"
+                        value={barForm.longitude}
+                        onChange={e => setBarForm({ ...barForm, longitude: e.target.value })}
+                        className="bg-background"
+                      />
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" onClick={useCurrentVenueLocation} disabled={isLocatingVenue}>
+                    <LocateFixed className={`w-4 h-4 mr-2 ${isLocatingVenue ? "animate-spin" : ""}`} />
+                    {isLocatingVenue ? "Finding venue…" : "Use my current location"}
+                  </Button>
+                  {bar.locationVerifiedAt && (
+                    <p className="flex items-center gap-1.5 text-xs font-mono text-accent">
+                      <ShieldCheck className="h-3.5 w-3.5" /> This pin is currently verified.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-mono text-muted-foreground">Cover Image URL</label>

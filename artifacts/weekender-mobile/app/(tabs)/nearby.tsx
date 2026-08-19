@@ -16,7 +16,7 @@ import { useListBars } from '@workspace/api-client-react';
 import { VenueCard } from '@/components/VenueCard';
 import { useColors } from '@/hooks/useColors';
 import { useDeviceLocation } from '@/context/LocationContext';
-import { distanceMiles } from '@/utils/location';
+import { distanceMiles, hasVerifiedVenueLocation } from '@/utils/location';
 
 export default function NearbyScreen() {
   const colors = useColors();
@@ -29,7 +29,7 @@ export default function NearbyScreen() {
     return barsQuery.data
       .map((bar) => {
         const distance =
-          location.coordinates && typeof bar.latitude === 'number' && typeof bar.longitude === 'number'
+          location.coordinates && hasVerifiedVenueLocation(bar)
             ? distanceMiles(location.coordinates, {
                 latitude: bar.latitude,
                 longitude: bar.longitude,
@@ -73,7 +73,7 @@ export default function NearbyScreen() {
             </Text>
             <Text style={[styles.locationText, { color: colors.mutedForeground }]}>
               {location.status === 'ready'
-                ? 'Venues with coordinates are sorted closest first.'
+                ? 'Verified venue pins are sorted closest first.'
                 : location.error ?? 'We use it only to rank bars around you.'}
             </Text>
           </View>
@@ -138,7 +138,7 @@ export default function NearbyScreen() {
               <View style={[styles.notice, { borderColor: colors.secondary, backgroundColor: colors.secondary + '1A' }]}>
                 <Feather name="info" size={16} color={colors.secondary} />
                 <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
-                  Your location is ready. Venue distances will appear once bar profiles are pinned to their addresses.
+                  Your location is ready. Venue distances will appear once owners verify their venue pins.
                 </Text>
               </View>
             )}

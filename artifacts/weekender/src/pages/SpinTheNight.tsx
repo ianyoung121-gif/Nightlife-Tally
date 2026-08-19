@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, MapPin, Dices, RotateCcw, Shuffle, ArrowRight, Star, Heart, Navigation } from "lucide-react";
-import { useUserLocation, distanceMiles } from "@/hooks/useUserLocation";
+import { useUserLocation, distanceMiles, hasVerifiedVenueLocation } from "@/hooks/useUserLocation";
 
 // ─── Static data ────────────────────────────────────────────────────────────
 
@@ -165,26 +165,27 @@ function BarCrawlTab({
   userLat,
   userLng,
 }: {
-  bars: Array<{ id: number; name: string; address?: string | null; subscriptionActive?: boolean; latitude?: number | null; longitude?: number | null }>;
+  bars: Array<{ id: number; name: string; address?: string | null; subscriptionActive?: boolean; latitude?: number | null; longitude?: number | null; locationVerifiedAt?: string | null }>;
   userLat?: number;
   userLng?: number;
 }) {
   const [crawl, setCrawl] = useState<typeof bars | null>(null);
   const [dares, setDares] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
+  const verifiedBars = bars.filter(hasVerifiedVenueLocation);
 
   const generate = () => {
-    if (bars.length < 1) return;
+    if (verifiedBars.length < 1) return;
     setGenerating(true);
     setCrawl(null);
 
     setTimeout(() => {
       // Prefer nearby bars if location is available
-      let pool = [...bars];
+      let pool = [...verifiedBars];
       if (userLat != null && userLng != null) {
         pool = pool.sort((a, b) => {
-          const dA = a.latitude != null && a.longitude != null ? distanceMiles(userLat, userLng, a.latitude, a.longitude) : Infinity;
-          const dB = b.latitude != null && b.longitude != null ? distanceMiles(userLat, userLng, b.latitude, b.longitude) : Infinity;
+          const dA = hasVerifiedVenueLocation(a) ? distanceMiles(userLat, userLng, a.latitude, a.longitude) : Infinity;
+          const dB = hasVerifiedVenueLocation(b) ? distanceMiles(userLat, userLng, b.latitude, b.longitude) : Infinity;
           return dA - dB;
         });
         // Take top 6 nearest, then shuffle to add variety
@@ -206,9 +207,11 @@ function BarCrawlTab({
         <div className="text-7xl">🗺️</div>
         <h3 className="text-2xl font-black uppercase tracking-tight text-white">Tonight's Crawl</h3>
         <p className="text-muted-foreground font-mono text-sm max-w-xs mx-auto">
-          We'll pick your spots and set the game plan. All you have to do is show up.
+          {verifiedBars.length > 0
+            ? "We'll pick your spots and set the game plan. All you have to do is show up."
+            : "Waiting for venue owners to verify their pins before we map a crawl."}
         </p>
-        {userLat != null && (
+        {userLat != null && verifiedBars.length > 0 && (
           <div className="inline-flex items-center gap-1.5 text-[10px] font-mono text-accent/70 bg-accent/10 border border-accent/20 px-3 py-1 rounded-full">
             <Navigation className="w-3 h-3" /> Using your location to find nearby bars
           </div>
@@ -219,7 +222,7 @@ function BarCrawlTab({
         <Button
           size="lg"
           onClick={generate}
-          disabled={generating || bars.length === 0}
+          disabled={generating || verifiedBars.length === 0}
           className="font-black uppercase tracking-widest text-lg h-14 px-10"
           style={{
             background: "linear-gradient(135deg, #FF2D78, #7B2FFF)",
@@ -259,7 +262,7 @@ function BarCrawlTab({
             {crawl.map((bar, i) => {
               const slot = CRAWL_SLOTS[i];
               const dist =
-                userLat != null && userLng != null && bar.latitude != null && bar.longitude != null
+                userLat != null && userLng != null && bar && hasVerifiedVenueLocation(bar)
                   ? distanceMiles(userLat, userLng, bar.latitude, bar.longitude)
                   : null;
               return (
@@ -334,7 +337,7 @@ function DateNightTab({
   userLat,
   userLng,
 }: {
-  bars: Array<{ id: number; name: string; address?: string | null; subscriptionActive?: boolean; latitude?: number | null; longitude?: number | null }>;
+  bars: Array<{ id: number; name: string; address?: string | null; subscriptionActive?: boolean; latitude?: number | null; longitude?: number | null; locationVerifiedAt?: string | null }>;
   userLat?: number;
   userLng?: number;
 }) {
@@ -346,17 +349,19 @@ function DateNightTab({
   const [plan, setPlan] = useState<DatePlan | null>(null);
   const [generating, setGenerating] = useState(false);
   const [dateDare, setDateDare] = useState(() => randomDateDare());
+  const verifiedBars = bars.filter(hasVerifiedVenueLocation);
 
   const generate = () => {
+    if (verifiedBars.length < 1) return;
     setGenerating(true);
     setPlan(null);
 
     setTimeout(() => {
-      let pool = [...bars];
+      let pool = [...verifiedBars];
       if (userLat != null && userLng != null) {
         pool = pool.sort((a, b) => {
-          const dA = a.latitude != null && a.longitude != null ? distanceMiles(userLat, userLng, a.latitude, a.longitude) : Infinity;
-          const dB = b.latitude != null && b.longitude != null ? distanceMiles(userLat, userLng, b.latitude, b.longitude) : Infinity;
+          const dA = hasVerifiedVenueLocation(a) ? distanceMiles(userLat, userLng, a.latitude, a.longitude) : Infinity;
+          const dB = hasVerifiedVenueLocation(b) ? distanceMiles(userLat, userLng, b.latitude, b.longitude) : Infinity;
           return dA - dB;
         });
         pool = shuffle(pool.slice(0, Math.min(8, pool.length)));
@@ -386,9 +391,11 @@ function DateNightTab({
         <div className="text-7xl">💕</div>
         <h3 className="text-2xl font-black uppercase tracking-tight text-white">Date Night Planner</h3>
         <p className="text-muted-foreground font-mono text-sm max-w-xs mx-auto">
-          A full evening mapped out — cocktails, dinner, nightcap, and one for the road.
+          {verifiedBars.length > 0
+            ? "A full evening mapped out — cocktails, dinner, nightcap, and one for the road."
+            : "Waiting for venue owners to verify their pins before we map your evening."}
         </p>
-        {userLat != null && (
+        {userLat != null && verifiedBars.length > 0 && (
           <div className="inline-flex items-center gap-1.5 text-[10px] font-mono text-primary/70 bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
             <Navigation className="w-3 h-3" /> Nearby bars prioritized
           </div>
@@ -399,7 +406,7 @@ function DateNightTab({
         <Button
           size="lg"
           onClick={generate}
-          disabled={generating}
+          disabled={generating || verifiedBars.length === 0}
           className="font-black uppercase tracking-widest text-lg h-14 px-10"
           style={{
             background: "linear-gradient(135deg, #FF2D78, #7B2FFF)",
@@ -440,7 +447,7 @@ function DateNightTab({
               const bar = plan.stops[i];
               const isDinner = "isDinner" in slot && slot.isDinner;
               const dist =
-                !isDinner && bar && userLat != null && userLng != null && bar.latitude != null && bar.longitude != null
+                !isDinner && bar && userLat != null && userLng != null && hasVerifiedVenueLocation(bar)
                   ? distanceMiles(userLat, userLng, bar.latitude, bar.longitude)
                   : null;
 

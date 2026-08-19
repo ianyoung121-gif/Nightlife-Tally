@@ -12,6 +12,14 @@ export interface BarUpdate {
   address?: string;
   coverImageUrl?: string;
   subscriptionActive?: boolean;
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
   latitude?: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
   longitude?: number;
 }
