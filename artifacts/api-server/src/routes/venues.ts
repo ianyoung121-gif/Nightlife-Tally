@@ -11,6 +11,20 @@ const CACHE_TTL_MS = 60_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const GOOGLE_NEARBY_SEARCH_URL = "https://places.googleapis.com/v1/places:searchNearby";
+const NIGHTLIFE_TYPES = new Set([
+  "bar",
+  "night_club",
+  "wine_bar",
+  "cocktail_bar",
+  "bar_and_grill",
+  "pub",
+  "brewery",
+  "brewpub",
+  "beer_hall",
+  "gastropub",
+  "lounge",
+  "dance_hall",
+]);
 
 type Coordinates = {
   latitude: number;
@@ -83,6 +97,17 @@ function normalize(value: string | null | undefined): string {
   return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function isNightlifePlace(place: {
+  primaryType?: string;
+  types?: string[];
+  formattedAddress?: string;
+}): boolean {
+  const hasNightlifeType =
+    (place.primaryType ? NIGHTLIFE_TYPES.has(place.primaryType) : false) ||
+    (place.types ?? []).some((type) => NIGHTLIFE_TYPES.has(type));
+  return hasNightlifeType && Boolean(place.formattedAddress && /\d/.test(place.formattedAddress));
+}
+
 function isRateLimited(req: Request): boolean {
   const key = req.ip || "unknown";
   const now = Date.now();
@@ -139,7 +164,7 @@ async function searchGoogleNearby(
         "Content-Type": "application/json",
         "X-Goog-Api-Key": apiKey,
         "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.primaryType",
+          "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.primaryType,places.types",
       },
       body: JSON.stringify({
         includedTypes: ["bar", "night_club"],
@@ -167,6 +192,7 @@ async function searchGoogleNearby(
         location?: Coordinates;
         googleMapsUri?: string;
         primaryType?: string;
+        types?: string[];
       }>;
     };
 
@@ -176,7 +202,8 @@ async function searchGoogleNearby(
           typeof place.id === "string" &&
           typeof place.displayName?.text === "string" &&
           typeof place.location?.latitude === "number" &&
-          typeof place.location?.longitude === "number",
+          typeof place.location?.longitude === "number" &&
+          isNightlifePlace(place),
       )
       .map((place) => ({
         providerId: place.id as string,

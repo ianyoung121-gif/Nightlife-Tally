@@ -17,6 +17,7 @@ const allowedOrigins = new Set(
   [
     ...((process.env.REPLIT_DOMAINS ?? "").split(",").filter(Boolean).map((domain) => `https://${domain}`)),
     process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : undefined,
+    process.env.REPLIT_EXPO_DEV_DOMAIN ? `https://${process.env.REPLIT_EXPO_DEV_DOMAIN}` : undefined,
   ].filter((origin): origin is string => Boolean(origin)),
 );
 

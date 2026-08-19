@@ -2,11 +2,39 @@ import React, { createContext, useCallback, useContext, useEffect, useState, typ
 import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export const AUTH_TOKEN_KEY = "weekender_auth_session";
 const ISSUER_URL = process.env.EXPO_PUBLIC_ISSUER_URL ?? "https://replit.com/oidc";
+
+export async function getStoredAuthToken(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    try {
+      return globalThis.localStorage?.getItem(AUTH_TOKEN_KEY) ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+}
+
+async function storeAuthToken(token: string): Promise<void> {
+  if (Platform.OS === "web") {
+    globalThis.localStorage?.setItem(AUTH_TOKEN_KEY, token);
+    return;
+  }
+  await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+}
+
+async function clearStoredAuthToken(): Promise<void> {
+  if (Platform.OS === "web") {
+    globalThis.localStorage?.removeItem(AUTH_TOKEN_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+}
 
 interface AuthUser {
   id: number;
@@ -51,14 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+      const token = await getStoredAuthToken();
       if (!token) {
         setUser(null);
         return;
       }
       const result = await fetch(`${apiBaseUrl()}/api/auth/user`, { headers: { Authorization: `Bearer ${token}` } });
       const data = result.ok ? await result.json() as { user: AuthUser | null } : { user: null };
-      if (!data.user) await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+      if (!data.user) await clearStoredAuthToken();
       setUser(data.user);
     } finally {
       setIsLoading(false);
@@ -80,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         const data = result.ok ? await result.json() as { token?: string } : {};
         if (!data.token) throw new Error("Token exchange failed");
-        await SecureStore.setItemAsync(AUTH_TOKEN_KEY, data.token);
+        await storeAuthToken(data.token);
         setIsLoading(true);
         await fetchUser();
       } catch {
@@ -91,17 +119,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async () => { await promptAsync(); }, [promptAsync]);
   const logout = useCallback(async () => {
-    const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    const token = await getStoredAuthToken();
     try {
       if (token) await fetch(`${apiBaseUrl()}/api/mobile-auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
     } finally {
-      await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+      await clearStoredAuthToken();
       setUser(null);
     }
   }, []);
 
   const deleteAccount = useCallback(async () => {
-    const token = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    const token = await getStoredAuthToken();
     if (!token) return;
 
     const result = await fetch(`${apiBaseUrl()}/api/auth/account`, {
@@ -110,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (!result.ok) throw new Error("Account deletion failed");
 
-    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    await clearStoredAuthToken();
     setUser(null);
   }, []);
 

@@ -7,8 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LocationProvider } from '@/context/LocationContext';
 import colors from '@/constants/colors';
 import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
-import * as SecureStore from 'expo-secure-store';
-import { AUTH_TOKEN_KEY, AuthProvider } from '@/lib/auth';
+import { AuthProvider, getStoredAuthToken } from '@/lib/auth';
 import {
   Outfit_400Regular,
   Outfit_600SemiBold,
@@ -28,7 +27,7 @@ const apiBaseUrl =
   process.env.EXPO_PUBLIC_API_URL ??
   (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : null);
 setBaseUrl(apiBaseUrl);
-setAuthTokenGetter(() => SecureStore.getItemAsync(AUTH_TOKEN_KEY));
+setAuthTokenGetter(getStoredAuthToken);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
