@@ -21,6 +21,11 @@ export interface AuthUser {
   avatarUrl?: string | null;
   createdAt: string;
 }
+
+export interface AuthState {
+  user: AuthUser | null;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -209,7 +214,3 @@ export type ListBarsParams = {
 search?: string;
 };
 
-
-export interface AuthState {
-  user: AuthUser | null;
-}

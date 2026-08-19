@@ -29,25 +29,20 @@ export function BarBrowser() {
 
   const sortedBars = useMemo(() => {
     if (!bars) return bars;
-    if (
-      sortByDistance &&
-      locState.status === "granted" &&
-      bars.some(hasVerifiedVenueLocation)
-    ) {
-      const { latitude: uLat, longitude: uLng } = locState.location;
-      return [...bars].sort((a, b) => {
-        const dA =
-          hasVerifiedVenueLocation(a)
-            ? distanceMiles(uLat, uLng, a.latitude, a.longitude)
-            : Infinity;
-        const dB =
-          hasVerifiedVenueLocation(b)
-            ? distanceMiles(uLat, uLng, b.latitude, b.longitude)
-            : Infinity;
-        return dA - dB;
+    if (!sortByDistance || locState.status !== "granted") return bars;
+
+    const { latitude: uLat, longitude: uLng } = locState.location;
+    return bars
+      .filter(hasVerifiedVenueLocation)
+      .sort((a, b) => {
+        const distanceA = hasVerifiedVenueLocation(a)
+          ? distanceMiles(uLat, uLng, a.latitude, a.longitude)
+          : Infinity;
+        const distanceB = hasVerifiedVenueLocation(b)
+          ? distanceMiles(uLat, uLng, b.latitude, b.longitude)
+          : Infinity;
+        return distanceA - distanceB;
       });
-    }
-    return bars;
   }, [bars, sortByDistance, locState]);
 
   const container = {
@@ -75,6 +70,18 @@ export function BarBrowser() {
           </h1>
           <p className="text-muted-foreground font-mono mt-2">
             Every spot in town. Find where you belong tonight.
+          </p>
+          <p className="text-[11px] text-muted-foreground/70 font-mono mt-2">
+            Venue pins are curated with{" "}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-accent"
+            >
+              OpenStreetMap contributors
+            </a>
+            .
           </p>
         </div>
 
@@ -142,11 +149,15 @@ export function BarBrowser() {
       ) : !sortedBars || sortedBars.length === 0 ? (
         <div className="text-center py-24 bg-card/30 rounded-xl border border-border/50">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search className="w-8 h-8 text-muted-foreground" />
+            {sortByDistance ? <Navigation className="w-8 h-8 text-muted-foreground" /> : <Search className="w-8 h-8 text-muted-foreground" />}
           </div>
-          <h3 className="text-xl font-bold uppercase text-white mb-2">No bars found</h3>
+          <h3 className="text-xl font-bold uppercase text-white mb-2">
+            {sortByDistance ? "No pinned venues nearby yet" : "No bars found"}
+          </h3>
           <p className="text-muted-foreground font-mono">
-            We couldn't find anything matching "{search}".
+            {sortByDistance
+              ? "We only rank venues with a verified location, so distance results stay accurate."
+              : `We couldn't find anything matching "${search}".`}
           </p>
         </div>
       ) : (

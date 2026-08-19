@@ -15,6 +15,7 @@ export const HealthCheckResponse = zod.object({
   "status": zod.string()
 })
 
+
 /**
  * @summary Get the currently signed-in account
  */
@@ -27,6 +28,8 @@ export const GetCurrentAuthUserResponse = zod.object({
   "createdAt": zod.string()
 }),zod.null()])
 })
+
+
 /**
  * @summary Create a user
  */
@@ -138,6 +141,7 @@ export const createBarBodyLongitudeMin = -180;
 export const createBarBodyLongitudeMax = 180;
 
 
+
 export const CreateBarBody = zod.object({
   "name": zod.string(),
   "description": zod.string().optional(),
@@ -186,6 +190,7 @@ export const GetTrendingBarsResponseItem = zod.object({
 })
 export const GetTrendingBarsResponse = zod.array(GetTrendingBarsResponseItem)
 
+
 /**
  * @summary List bar profiles owned by the signed-in account
  */
@@ -199,10 +204,14 @@ export const ListMyBarsResponseItem = zod.object({
   "subscriptionActive": zod.boolean(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
+  "locationVerifiedAt": zod.coerce.date().nullish(),
   "followerCount": zod.number(),
   "totalTallies": zod.number(),
   "createdAt": zod.string()
 })
+export const ListMyBarsResponse = zod.array(ListMyBarsResponseItem)
+
+
 /**
  * @summary Get bar by ID
  */
@@ -239,6 +248,7 @@ export const updateBarBodyLatitudeMax = 90;
 
 export const updateBarBodyLongitudeMin = -180;
 export const updateBarBodyLongitudeMax = 180;
+
 
 
 export const UpdateBarBody = zod.object({
@@ -634,4 +644,3 @@ export const GetTrendingStatsResponse = zod.object({
 })
 
 
-export const ListMyBarsResponse = zod.array(ListMyBarsResponseItem)
