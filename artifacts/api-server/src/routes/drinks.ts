@@ -50,16 +50,21 @@ router.post("/drinks/:drinkId/tally", async (req, res): Promise<void> => {
   const drinkId = parseInt(raw, 10);
   if (isNaN(drinkId)) { res.status(400).json({ error: "Invalid drinkId" }); return; }
 
-  // increment tally count — no user ID stored, tallies are anonymous by design
-  const [drink] = await db
-    .update(drinksTable)
-    .set({ tallyCount: sql<number>`${drinksTable.tallyCount} + 1` })
-    .where(eq(drinksTable.id, drinkId))
-    .returning();
-  if (!drink) { res.status(404).json({ error: "Drink not found" }); return; }
+  const drink = await db.transaction(async (tx) => {
+    // increment tally count — no user ID stored, tallies are anonymous by design
+    const [drink] = await tx
+      .update(drinksTable)
+      .set({ tallyCount: sql<number>`${drinksTable.tallyCount} + 1` })
+      .where(eq(drinksTable.id, drinkId))
+      .returning();
+    if (!drink) return null;
 
-  // record only the drink + timestamp, never the user — preserves patron privacy
-  await db.insert(talliesTable).values({ drinkId, userId: null });
+    // record only the drink + timestamp, never the user — preserves patron privacy
+    await tx.insert(talliesTable).values({ drinkId, userId: null });
+
+    return drink;
+  });
+  if (!drink) { res.status(404).json({ error: "Drink not found" }); return; }
 
   const result = await drinkWithBarName(drink);
   res.json(result);

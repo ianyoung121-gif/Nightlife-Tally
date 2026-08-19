@@ -21,6 +21,27 @@ async function createDrinkFixture(pool) {
   return drink;
 }
 
+async function createAuditFailureTrigger(pool, drinkId) {
+  const identifier = `tally_audit_failure_${drinkId}`;
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION ${identifier}() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+    BEGIN
+      RAISE EXCEPTION 'forced tally audit write failure';
+    END;
+    $$;
+    CREATE TRIGGER ${identifier}
+    BEFORE INSERT ON tallies
+    FOR EACH ROW EXECUTE FUNCTION ${identifier}();
+  `);
+  return identifier;
+}
+
+async function removeAuditFailureTrigger(pool, identifier) {
+  await pool.query(`DROP TRIGGER IF EXISTS ${identifier} ON tallies`);
+  await pool.query(`DROP FUNCTION IF EXISTS ${identifier}()`);
+}
+
 async function waitForServer(baseUrl, server, stderr, getSpawnError) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const spawnError = getSpawnError();
@@ -103,6 +124,61 @@ test("concurrent drink tallies retain every successful increment", { timeout: 20
       const deletedTallies = await pool.query("DELETE FROM tallies WHERE drink_id = $1", [drinkId]);
       const deletedDrink = await pool.query("DELETE FROM drinks WHERE id = $1", [drinkId]);
       assert.equal(deletedTallies.rowCount, TALLY_REQUESTS);
+      assert.equal(deletedDrink.rowCount, 1);
+    }
+
+    await pool.end();
+  }
+});
+
+test("failed tally audit writes do not increment the drink count", { timeout: 20_000 }, async () => {
+  const port = randomInt(30_000, 40_000);
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const stderr = [];
+  let spawnError;
+  const server = spawn(process.execPath, ["--enable-source-maps", "./dist/index.mjs"], {
+    cwd: artifactDirectory,
+    env: { ...process.env, NODE_ENV: "test", PORT: String(port) },
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+  server.stderr.on("data", (chunk) => stderr.push(chunk.toString()));
+  server.on("error", (error) => { spawnError = error; });
+
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  let drinkId;
+  let triggerIdentifier;
+
+  try {
+    await waitForServer(baseUrl, server, stderr, () => spawnError);
+    const drink = await createDrinkFixture(pool);
+    drinkId = drink.id;
+    triggerIdentifier = await createAuditFailureTrigger(pool, drinkId);
+
+    const tallyResponse = await fetch(`${baseUrl}/api/drinks/${drinkId}/tally`, { method: "POST" });
+    assert.equal(tallyResponse.status, 500);
+
+    const drinkResult = await pool.query(
+      "SELECT tally_count FROM drinks WHERE id = $1",
+      [drinkId],
+    );
+    assert.equal(drinkResult.rows[0].tally_count, 0);
+
+    const tallyResult = await pool.query(
+      "SELECT COUNT(*)::int AS count FROM tallies WHERE drink_id = $1",
+      [drinkId],
+    );
+    assert.equal(tallyResult.rows[0].count, 0);
+  } finally {
+    await stopServer(server);
+
+    if (triggerIdentifier) {
+      await removeAuditFailureTrigger(pool, triggerIdentifier);
+    }
+
+    if (drinkId) {
+      const deletedTallies = await pool.query("DELETE FROM tallies WHERE drink_id = $1", [drinkId]);
+      const deletedDrink = await pool.query("DELETE FROM drinks WHERE id = $1", [drinkId]);
+      assert.equal(deletedTallies.rowCount, 0);
       assert.equal(deletedDrink.rowCount, 1);
     }
 
