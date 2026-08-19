@@ -158,3 +158,7 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # brace-expansion@5.0.8 is vulnerable (CVE-2026-69152); 5.0.9 is the fix
+  "brace-expansion@5": "5.0.9"
+  # image-size@1.2.1 is vulnerable (CVE-2025-71329); upgrade to 2.0.2
+  "image-size@1": "2.0.2"
