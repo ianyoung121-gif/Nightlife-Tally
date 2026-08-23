@@ -63,16 +63,8 @@ outputType = "webview"
 artifactId = "artifacts/weekender-mobile"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/weekender-mobile run dev"
-cwd = "./artifacts/weekender-mobile"
-waitForPort = 20045
-ensurePreviewReachable = "/status"
-router = "expo-domain"
-
-[workflows.workflow.tasks.env]
-PORT = "20045"
-BASE_PATH = "/weekender-mobile/"
+task = "workflow.run"
+args = ""
 
 [[workflows.workflow]]
 name = "artifacts/weekender: web"
