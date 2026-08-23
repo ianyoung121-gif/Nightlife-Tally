@@ -63,7 +63,7 @@ outputType = "webview"
 artifactId = "artifacts/weekender-mobile"
 
 [[workflows.workflow.tasks]]
-task = "workflow.run"
+task = "packager.installForLanguage"
 args = ""
 
 [[workflows.workflow]]
