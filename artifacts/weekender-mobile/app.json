@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "weekender",
+    "scheme": "com.theweekender.app",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {

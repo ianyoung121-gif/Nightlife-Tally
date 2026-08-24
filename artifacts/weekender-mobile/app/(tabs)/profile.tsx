@@ -10,7 +10,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const statsQuery = useGetTrendingStats();
   const location = useDeviceLocation();
-  const { user, isLoading, login, logout, deleteAccount } = useAuth();
+  const { user, isLoading, authError, login, logout, deleteAccount } = useAuth();
 
   const confirmAccountDeletion = () => {
     Alert.alert(
@@ -51,6 +51,9 @@ export default function ProfileScreen() {
           </View>
           {!isLoading && <Pressable onPress={user ? logout : login}><Text style={[styles.enable, { color: colors.accent }]}>{user ? 'LOG OUT' : 'LOG IN'}</Text></Pressable>}
         </View>
+        {!user && authError && (
+          <Text style={[styles.authError, { color: colors.destructive }]}>{authError}</Text>
+        )}
         {user && (
           <Pressable onPress={confirmAccountDeletion} style={[styles.deleteAccount, { borderColor: colors.destructive + '66' }]}>
             <Feather name="trash-2" size={15} color={colors.destructive} />
@@ -134,6 +137,7 @@ const styles = StyleSheet.create({
   settingTitle: { fontFamily: 'Outfit_700Bold', fontSize: 16 },
   settingDetail: { fontFamily: 'Outfit_400Regular', fontSize: 12, lineHeight: 17 },
   enable: { fontFamily: 'SpaceMono_700Bold', fontSize: 10, letterSpacing: 0.6 },
+  authError: { fontFamily: 'Outfit_400Regular', fontSize: 12, lineHeight: 17, marginTop: -10 },
   deleteAccount: { minHeight: 42, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   deleteAccountText: { fontFamily: 'SpaceMono_700Bold', fontSize: 10, letterSpacing: 0.7 },
   safety: { borderWidth: 1, borderRadius: 15, padding: 15, flexDirection: 'row', alignItems: 'flex-start', gap: 11 },

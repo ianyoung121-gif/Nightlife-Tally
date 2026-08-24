@@ -6,6 +6,7 @@ import {
   clearSession,
   createSession,
   deleteSession,
+  getMobileOidcConfig,
   getOidcConfig,
   getSessionId,
   ISSUER_URL,
@@ -18,6 +19,7 @@ import {
 
 const router = Router();
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
+const OIDC_COOKIE_NAMES = ["oidc_verifier", "oidc_nonce", "oidc_state", "oidc_return_to"];
 
 function origin(req: Request): string {
   const protocol = req.headers["x-forwarded-proto"] || "https";
@@ -35,6 +37,12 @@ function oidcCookie(res: Response, name: string, value: string): void {
 
 function sessionCookie(res: Response, sid: string): void {
   res.cookie(SESSION_COOKIE, sid, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: SESSION_TTL });
+}
+
+function clearOidcCookies(res: Response): void {
+  for (const cookie of OIDC_COOKIE_NAMES) {
+    res.clearCookie(cookie, { path: "/" });
+  }
 }
 
 async function sessionFromTokens(tokens: oidc.TokenEndpointResponse & oidc.TokenEndpointResponseHelpers): Promise<SessionData> {
@@ -93,13 +101,14 @@ router.get("/callback", async (req, res): Promise<void> => {
     });
     const session = await sessionFromTokens(tokens);
     sessionCookie(res, await createSession(session));
-    res.redirect(safeReturnTo(req.cookies?.oidc_return_to));
-  } catch {
-    res.redirect("/api/login");
-  } finally {
-    for (const cookie of ["oidc_verifier", "oidc_nonce", "oidc_state", "oidc_return_to"]) {
-      res.clearCookie(cookie, { path: "/" });
-    }
+    const returnTo = safeReturnTo(req.cookies?.oidc_return_to);
+    clearOidcCookies(res);
+    res.redirect(returnTo);
+  } catch (error) {
+    req.log.warn({ err: error instanceof Error ? error.name : "unknown" }, "Browser authentication failed");
+    const returnTo = safeReturnTo(req.cookies?.oidc_return_to);
+    clearOidcCookies(res);
+    res.redirect(returnTo);
   }
 });
 
@@ -124,7 +133,7 @@ router.post("/mobile-auth/token-exchange", async (req, res): Promise<void> => {
     callbackUrl.searchParams.set("code", code);
     callbackUrl.searchParams.set("state", state);
     callbackUrl.searchParams.set("iss", ISSUER_URL);
-    const tokens = await oidc.authorizationCodeGrant(await getOidcConfig(), callbackUrl, {
+    const tokens = await oidc.authorizationCodeGrant(await getMobileOidcConfig(), callbackUrl, {
       pkceCodeVerifier: code_verifier,
       expectedNonce: typeof nonce === "string" ? nonce : undefined,
       expectedState: state,

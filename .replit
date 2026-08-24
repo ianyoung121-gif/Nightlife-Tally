@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16", "python-base-3.13"]
+modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -97,3 +97,8 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+MOBILE_OIDC_CLIENT_ID = "3ae4085f-9de1-43bc-bc5a-cd714835092a"

@@ -48,6 +48,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authError: string | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -65,11 +66,16 @@ function apiBaseUrl(): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const discovery = AuthSession.useAutoDiscovery(ISSUER_URL);
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: "weekender" });
+  const redirectUri = AuthSession.makeRedirectUri({
+    native: "com.theweekender.app://auth",
+    scheme: "com.theweekender.app",
+    path: "auth",
+  });
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
-      clientId: process.env.EXPO_PUBLIC_REPL_ID ?? "",
+      clientId: process.env.EXPO_PUBLIC_MOBILE_REPL_ID ?? "",
       redirectUri,
       scopes: ["openid", "email", "profile", "offline_access"],
       prompt: AuthSession.Prompt.Login,
@@ -96,9 +102,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => { void fetchUser(); }, [fetchUser]);
 
   useEffect(() => {
-    if (response?.type !== "success" || !request?.codeVerifier) return;
+    if (!response) return;
+    if (response.type !== "success") {
+      setAuthError(response.type === "dismiss" || response.type === "cancel"
+        ? "Sign-in was cancelled. Tap Log In to try again."
+        : "Sign-in did not complete. Tap Log In to try again.");
+      setIsLoading(false);
+      return;
+    }
+    if (!request?.codeVerifier) {
+      setAuthError("Sign-in did not complete. Tap Log In to try again.");
+      setIsLoading(false);
+      return;
+    }
     const { code, state } = response.params;
-    if (!code || !state) return;
+    if (!code || !state) {
+      setAuthError("Sign-in did not complete. Tap Log In to try again.");
+      setIsLoading(false);
+      return;
+    }
     void (async () => {
       try {
         const result = await fetch(`${apiBaseUrl()}/api/mobile-auth/token-exchange`, {
@@ -109,15 +131,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = result.ok ? await result.json() as { token?: string } : {};
         if (!data.token) throw new Error("Token exchange failed");
         await storeAuthToken(data.token);
+        setAuthError(null);
         setIsLoading(true);
         await fetchUser();
       } catch {
+        setAuthError("We couldn't finish sign-in. Tap Log In to try again.");
         setIsLoading(false);
       }
     })();
   }, [fetchUser, redirectUri, request, response]);
 
-  const login = useCallback(async () => { await promptAsync(); }, [promptAsync]);
+  const login = useCallback(async () => {
+    setAuthError(null);
+    if (!request) {
+      setAuthError("Sign-in is still preparing. Try again in a moment.");
+      return;
+    }
+    try {
+      await promptAsync();
+    } catch {
+      setAuthError("We couldn't start sign-in. Tap Log In to try again.");
+    }
+  }, [promptAsync, request]);
   const logout = useCallback(async () => {
     const token = await getStoredAuthToken();
     try {
@@ -142,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), login, logout, deleteAccount }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), authError, login, logout, deleteAccount }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

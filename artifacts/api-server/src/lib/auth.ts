@@ -79,6 +79,7 @@ export function toSessionUser(user: User): SessionUser {
 }
 
 let oidcConfig: oidc.Configuration | null = null;
+let mobileOidcConfig: oidc.Configuration | null = null;
 
 export interface SessionData {
   user: SessionUser;
@@ -95,6 +96,17 @@ export async function getOidcConfig(): Promise<oidc.Configuration> {
     oidcConfig = await oidc.discovery(new URL(ISSUER_URL), process.env.REPL_ID);
   }
   return oidcConfig;
+}
+
+export async function getMobileOidcConfig(): Promise<oidc.Configuration> {
+  if (!mobileOidcConfig) {
+    const mobileClientId = process.env.MOBILE_OIDC_CLIENT_ID;
+    if (!mobileClientId) {
+      throw new Error("MOBILE_OIDC_CLIENT_ID is required to configure mobile authentication");
+    }
+    mobileOidcConfig = await oidc.discovery(new URL(ISSUER_URL), mobileClientId);
+  }
+  return mobileOidcConfig;
 }
 
 export async function createSession(data: SessionData): Promise<string> {

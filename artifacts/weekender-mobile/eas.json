@@ -10,6 +10,7 @@
       "environment": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://nightlifetally.com",
+          "EXPO_PUBLIC_MOBILE_REPL_ID": "3ae4085f-9de1-43bc-bc5a-cd714835092a",
         "EXPO_PUBLIC_REPL_ID": "c916bfe4-67d0-4077-892f-2bbc724cd781:jczd5cta"
       },
       "android": {
@@ -22,6 +23,7 @@
       "environment": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://nightlifetally.com",
+          "EXPO_PUBLIC_MOBILE_REPL_ID": "3ae4085f-9de1-43bc-bc5a-cd714835092a",
         "EXPO_PUBLIC_REPL_ID": "c916bfe4-67d0-4077-892f-2bbc724cd781:jczd5cta"
       },
       "android": {
