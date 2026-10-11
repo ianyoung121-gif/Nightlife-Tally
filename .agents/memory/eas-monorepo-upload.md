@@ -24,3 +24,11 @@ Keep the EAS package-manager version aligned with the version used to validate t
 **Why:** Expo's latest image supplied pnpm 11, whose stricter dependency-script policy rejected this workspace's pnpm 10 configuration. The same frozen install passed under the workspace's pnpm 10 version.
 
 **How to apply:** Set the supported `pnpm` version explicitly in EAS build profiles. Do not globally enable dependency scripts or remove supply-chain protections to work around a package-manager version mismatch.
+
+## Automatic submission prerequisite
+
+Do not enable automatic Google Play submission until Expo has a configured Google Play service-account key.
+
+**Why:** A GitHub-triggered build with automatic submission failed during build-configuration resolution, before native compilation, because Google Service Account Keys cannot be set up in non-interactive mode. The Android signing keystore was valid; the missing credential was for submission.
+
+**How to apply:** Build without automatic submission when that key is absent, then use Play Console to upload the finished AAB. Never replace the Android signing keystore to resolve a submission-credential error.
