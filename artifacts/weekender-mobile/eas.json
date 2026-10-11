@@ -6,6 +6,7 @@
   "build": {
     "play-internal": {
       "distribution": "store",
+      "pnpm": "10.26.1",
       "autoIncrement": true,
       "environment": "preview",
       "env": {
@@ -20,6 +21,7 @@
     },
     "production": {
       "distribution": "store",
+      "pnpm": "10.26.1",
       "autoIncrement": true,
       "environment": "production",
       "env": {
