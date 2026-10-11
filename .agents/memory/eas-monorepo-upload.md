@@ -16,3 +16,11 @@ Verify Expo's linked repository independently of Replit's Git remote. Multiple s
 **Why:** Build creation repeatedly returned a generic GraphQL 503 while Expo was linked to a different repository. Linking the repository containing the current code and saving the mobile base directory allowed a build to start.
 
 **How to apply:** Before diagnosing a recurring build-trigger 503 as an outage, inspect Expo's Project GitHub settings and compare its repository against the actual pushed source. A 503 alone is not proof of the cause.
+
+## Cloud package-manager versions
+
+Keep the EAS package-manager version aligned with the version used to validate the workspace rather than accepting an image's changing default.
+
+**Why:** Expo's latest image supplied pnpm 11, whose stricter dependency-script policy rejected this workspace's pnpm 10 configuration. The same frozen install passed under the workspace's pnpm 10 version.
+
+**How to apply:** Set the supported `pnpm` version explicitly in EAS build profiles. Do not globally enable dependency scripts or remove supply-chain protections to work around a package-manager version mismatch.
