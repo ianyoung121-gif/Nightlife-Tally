@@ -80,8 +80,10 @@ export default function SpinScreen() {
   const venueQuery = useGetPublicVenue(contextProviderId ?? '', {
     query: { enabled: !!contextProviderId, queryKey: getGetPublicVenueQueryKey(contextProviderId ?? '') },
   });
-  const ownerQuery = useListBarSpecials(barId ?? 0, {
-    query: { enabled: mode === 'drinks' && source === 'specials' && barId !== undefined, refetchInterval: 30_000, queryKey: getListBarSpecialsQueryKey(barId ?? 0) },
+  const linkedBarId = providerId && contextProviderId === providerId ? venueQuery.data?.linkedBarId ?? undefined : undefined;
+  const ownerBarId = barId ?? linkedBarId;
+  const ownerQuery = useListBarSpecials(ownerBarId ?? 0, {
+    query: { enabled: mode === 'drinks' && source === 'specials' && ownerBarId !== undefined, refetchInterval: 30_000, queryKey: getListBarSpecialsQueryKey(ownerBarId ?? 0) },
   });
   const pubParams = barId !== undefined ? { barId } : { providerId: providerId ?? '' };
   const publicQuery = useListPublicSpecials(pubParams, {
@@ -97,8 +99,8 @@ export default function SpinScreen() {
   );
 
   const specialsMode = mode === 'drinks' && source === 'specials';
-  const specialsLoading = specialsMode && sel !== '' && ((barId !== undefined && (ownerQuery.isLoading || barsQuery.isLoading)) || (providerId !== undefined && venueQuery.isLoading) || publicQuery.isLoading);
-  const specialsError = specialsMode && sel !== '' && ((barId !== undefined && (ownerQuery.isError || barsQuery.isError)) || (providerId !== undefined && venueQuery.isError) || publicQuery.isError);
+  const specialsLoading = specialsMode && sel !== '' && ((barId !== undefined && (ownerQuery.isLoading || barsQuery.isLoading)) || (providerId !== undefined && (venueQuery.isLoading || (linkedBarId !== undefined && ownerQuery.isLoading))) || publicQuery.isLoading);
+  const specialsError = specialsMode && sel !== '' && ((barId !== undefined && (ownerQuery.isError || barsQuery.isError)) || (providerId !== undefined && (venueQuery.isError || (linkedBarId !== undefined && ownerQuery.isError))) || publicQuery.isError);
 
   const entries: Entry[] = useMemo(() => {
     if (mode === 'bars') {
@@ -150,7 +152,7 @@ export default function SpinScreen() {
   const retry = () => {
     if (barId !== undefined) void barsQuery.refetch();
     if (providerId) void venueQuery.refetch();
-    if (barId !== undefined) void ownerQuery.refetch();
+    if (ownerBarId !== undefined) void ownerQuery.refetch();
     void publicQuery.refetch();
   };
   const noun = mode === 'bars' ? 'BAR' : source === 'random' ? 'DRINK' : 'SPECIAL';
@@ -247,7 +249,7 @@ export default function SpinScreen() {
                     <Feather name="map-pin" size={15} color={colors.accent} />
                     <Text style={[styles.noteText, { color: colors.foreground }]}>
                       {venueName ?? 'Loading venue'}{venueAddress ? `\n${venueAddress}` : ''}
-                      {providerId ? '\nGoogle Maps place: checked public specials only.' : ''}
+                      {providerId ? (linkedBarId !== undefined ? '\nGoogle Maps place linked to a verified owner: current owner and checked specials. Google supplies no specials.' : '\nGoogle Maps place: checked public specials only.') : ''}
                     </Text>
                   </View>
                 )}

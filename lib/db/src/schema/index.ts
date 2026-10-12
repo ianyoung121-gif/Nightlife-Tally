@@ -7,3 +7,4 @@ export * from "./specials";
 export * from "./coupons";
 export * from "./auth";
 export * from "./promotions";
+export * from "./googleBusiness";

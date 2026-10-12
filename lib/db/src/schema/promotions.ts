@@ -20,6 +20,7 @@ export const placeFavoritesTable = pgTable("place_favorites", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   providerId: text("provider_id").notNull(),
+  notificationsEnabled: boolean("notifications_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [unique("place_favorite_user_place").on(t.userId, t.providerId)]);
 

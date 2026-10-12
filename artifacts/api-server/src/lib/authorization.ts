@@ -1,4 +1,4 @@
-import { db, barsTable } from "@workspace/db";
+import { db, barsTable, googleVenueLinksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { getMembership } from "./membership";
@@ -31,6 +31,11 @@ export async function requirePaidBarOwner(req: Request, res: Response, barId: nu
   const userId = requireSignedIn(req, res);
   if (userId === null) return false;
   try {
+    const [link] = await db.select().from(googleVenueLinksTable).where(eq(googleVenueLinksTable.barId, barId));
+    if (link && (link.ownerId !== userId || link.expiresAt.getTime() <= Date.now())) {
+      res.status(403).json({ error: "Reconnect Google to renew your venue-management verification before publishing." });
+      return false;
+    }
     if (!(await getMembership(barId, userId)).active) {
       res.status(403).json({ error: "A $5/month owner membership is required for this tool." });
       return false;

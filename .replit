@@ -105,3 +105,4 @@ MOBILE_OIDC_CLIENT_ID = "3ae4085f-9de1-43bc-bc5a-cd714835092a"
 
 [userenv.production]
 WEEKENDER_PUBLIC_URL = "https://nightlifetally.com"
+GOOGLE_BUSINESS_REDIRECT_URI = "https://nightlifetally.com/api/google-business/callback"

@@ -13,10 +13,12 @@ import billingRouter from "./billing";
 import publicSpecialsRouter from "./publicSpecials";
 import placeFavoritesRouter from "./placeFavorites";
 import notificationsRouter from "./notifications";
+import googleBusinessRouter from "./googleBusiness";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(googleBusinessRouter);
 router.use(authRouter);
 router.use(usersRouter);
 router.use(barsRouter);

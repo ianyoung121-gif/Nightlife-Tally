@@ -33,15 +33,19 @@ import type {
   Drink,
   DrinkInput,
   ErrorResponse,
+  FinishGoogleBusinessConnectionParams,
   FollowInput,
   FollowStatus,
   GetEditorAccess200,
   GetPlaceFavorites200Item,
   GetVenueMembership200,
   GetVenueMembershipParams,
+  GoogleConnectionStatus,
+  GoogleLocationChoice,
   HealthStatus,
   ListBarsParams,
   ListPublicSpecialsParams,
+  ManagedGoogleLocation,
   NearbyVenuesResponse,
   NotificationPreference,
   PlaceFavoriteStatus,
@@ -86,6 +90,559 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetVenueGoogleConnectionUrl = (barId: number,) => {
+
+
+
+
+  return `/api/bars/${barId}/google-business`
+}
+
+export const getVenueGoogleConnection = async (barId: number, options?: Parameters<typeof customFetch>[1]): Promise<GoogleConnectionStatus> => {
+
+  return customFetch<GoogleConnectionStatus>(getGetVenueGoogleConnectionUrl(barId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVenueGoogleConnectionQueryKey = (barId: number,) => {
+    return [
+    `/api/bars/${barId}/google-business`
+    ] as const;
+    }
+
+
+export const getGetVenueGoogleConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getVenueGoogleConnection>>, TError = ErrorType<unknown>>(barId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenueGoogleConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVenueGoogleConnectionQueryKey(barId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVenueGoogleConnection>>> = ({ signal }) => getVenueGoogleConnection(barId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: barId !== null && barId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVenueGoogleConnection>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVenueGoogleConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof getVenueGoogleConnection>>>
+export type GetVenueGoogleConnectionQueryError = ErrorType<unknown>
+
+
+
+export function useGetVenueGoogleConnection<TData = Awaited<ReturnType<typeof getVenueGoogleConnection>>, TError = ErrorType<unknown>>(
+ barId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVenueGoogleConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVenueGoogleConnectionQueryOptions(barId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDisconnectVenueGoogleUrl = (barId: number,) => {
+
+
+
+
+  return `/api/bars/${barId}/google-business`
+}
+
+export const disconnectVenueGoogle = async (barId: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDisconnectVenueGoogleUrl(barId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectVenueGoogleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectVenueGoogle>>, TError,{barId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectVenueGoogle>>, TError,{barId: number}, TContext> => {
+
+const mutationKey = ['disconnectVenueGoogle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectVenueGoogle>>, {barId: number}> = (props) => {
+          const {barId} = props ?? {};
+
+          return  disconnectVenueGoogle(barId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectVenueGoogleMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectVenueGoogle>>>
+
+    export type DisconnectVenueGoogleMutationError = ErrorType<unknown>
+
+    export const useDisconnectVenueGoogle = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectVenueGoogle>>, TError,{barId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectVenueGoogle>>,
+        TError,
+        {barId: number},
+        TContext
+      > => {
+      return useMutation(getDisconnectVenueGoogleMutationOptions(options));
+    }
+
+export const getStartVenueGoogleConnectionUrl = (barId: number,) => {
+
+
+
+
+  return `/api/bars/${barId}/google-business/connect`
+}
+
+export const startVenueGoogleConnection = async (barId: number, options?: Parameters<typeof customFetch>[1]): Promise<BillingRedirect> => {
+
+  return customFetch<BillingRedirect>(getStartVenueGoogleConnectionUrl(barId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartVenueGoogleConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startVenueGoogleConnection>>, TError,{barId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startVenueGoogleConnection>>, TError,{barId: number}, TContext> => {
+
+const mutationKey = ['startVenueGoogleConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startVenueGoogleConnection>>, {barId: number}> = (props) => {
+          const {barId} = props ?? {};
+
+          return  startVenueGoogleConnection(barId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartVenueGoogleConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof startVenueGoogleConnection>>>
+
+    export type StartVenueGoogleConnectionMutationError = ErrorType<unknown>
+
+    export const useStartVenueGoogleConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startVenueGoogleConnection>>, TError,{barId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startVenueGoogleConnection>>,
+        TError,
+        {barId: number},
+        TContext
+      > => {
+      return useMutation(getStartVenueGoogleConnectionMutationOptions(options));
+    }
+
+export const getListManagedGoogleLocationsUrl = (barId: number,) => {
+
+
+
+
+  return `/api/bars/${barId}/google-business/locations`
+}
+
+export const listManagedGoogleLocations = async (barId: number, options?: Parameters<typeof customFetch>[1]): Promise<ManagedGoogleLocation[]> => {
+
+  return customFetch<ManagedGoogleLocation[]>(getListManagedGoogleLocationsUrl(barId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListManagedGoogleLocationsQueryKey = (barId: number,) => {
+    return [
+    `/api/bars/${barId}/google-business/locations`
+    ] as const;
+    }
+
+
+export const getListManagedGoogleLocationsQueryOptions = <TData = Awaited<ReturnType<typeof listManagedGoogleLocations>>, TError = ErrorType<unknown>>(barId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listManagedGoogleLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListManagedGoogleLocationsQueryKey(barId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listManagedGoogleLocations>>> = ({ signal }) => listManagedGoogleLocations(barId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: barId !== null && barId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listManagedGoogleLocations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListManagedGoogleLocationsQueryResult = NonNullable<Awaited<ReturnType<typeof listManagedGoogleLocations>>>
+export type ListManagedGoogleLocationsQueryError = ErrorType<unknown>
+
+
+
+export function useListManagedGoogleLocations<TData = Awaited<ReturnType<typeof listManagedGoogleLocations>>, TError = ErrorType<unknown>>(
+ barId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listManagedGoogleLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListManagedGoogleLocationsQueryOptions(barId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getLinkVenueGoogleLocationUrl = (barId: number,) => {
+
+
+
+
+  return `/api/bars/${barId}/google-business/locations`
+}
+
+export const linkVenueGoogleLocation = async (barId: number,
+    googleLocationChoice: GoogleLocationChoice, options?: Parameters<typeof customFetch>[1]): Promise<GoogleConnectionStatus> => {
+
+  return customFetch<GoogleConnectionStatus>(getLinkVenueGoogleLocationUrl(barId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(googleLocationChoice)
+  }
+);}
+
+
+
+
+
+export const getLinkVenueGoogleLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkVenueGoogleLocation>>, TError,{barId: number;data: BodyType<GoogleLocationChoice>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof linkVenueGoogleLocation>>, TError,{barId: number;data: BodyType<GoogleLocationChoice>}, TContext> => {
+
+const mutationKey = ['linkVenueGoogleLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof linkVenueGoogleLocation>>, {barId: number;data: BodyType<GoogleLocationChoice>}> = (props) => {
+          const {barId,data} = props ?? {};
+
+          return  linkVenueGoogleLocation(barId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LinkVenueGoogleLocationMutationResult = NonNullable<Awaited<ReturnType<typeof linkVenueGoogleLocation>>>
+    export type LinkVenueGoogleLocationMutationBody = BodyType<GoogleLocationChoice>
+    export type LinkVenueGoogleLocationMutationError = ErrorType<unknown>
+
+    export const useLinkVenueGoogleLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkVenueGoogleLocation>>, TError,{barId: number;data: BodyType<GoogleLocationChoice>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof linkVenueGoogleLocation>>,
+        TError,
+        {barId: number;data: BodyType<GoogleLocationChoice>},
+        TContext
+      > => {
+      return useMutation(getLinkVenueGoogleLocationMutationOptions(options));
+    }
+
+export const getFinishGoogleBusinessConnectionUrl = (params?: FinishGoogleBusinessConnectionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/google-business/callback?${stringifiedParams}` : `/api/google-business/callback`
+}
+
+export const finishGoogleBusinessConnection = async (params?: FinishGoogleBusinessConnectionParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getFinishGoogleBusinessConnectionUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getFinishGoogleBusinessConnectionQueryKey = (params?: FinishGoogleBusinessConnectionParams,) => {
+    return [
+    `/api/google-business/callback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFinishGoogleBusinessConnectionQueryOptions = <TData = Awaited<ReturnType<typeof finishGoogleBusinessConnection>>, TError = ErrorType<void>>(params?: FinishGoogleBusinessConnectionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof finishGoogleBusinessConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFinishGoogleBusinessConnectionQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof finishGoogleBusinessConnection>>> = ({ signal }) => finishGoogleBusinessConnection(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof finishGoogleBusinessConnection>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type FinishGoogleBusinessConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof finishGoogleBusinessConnection>>>
+export type FinishGoogleBusinessConnectionQueryError = ErrorType<void>
+
+
+
+export function useFinishGoogleBusinessConnection<TData = Awaited<ReturnType<typeof finishGoogleBusinessConnection>>, TError = ErrorType<void>>(
+ params?: FinishGoogleBusinessConnectionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof finishGoogleBusinessConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getFinishGoogleBusinessConnectionQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPlaceNotificationPreferenceUrl = (providerId: string,) => {
+
+
+
+
+  return `/api/venues/${providerId}/notification-preference`
+}
+
+export const getPlaceNotificationPreference = async (providerId: string, options?: Parameters<typeof customFetch>[1]): Promise<NotificationPreference> => {
+
+  return customFetch<NotificationPreference>(getGetPlaceNotificationPreferenceUrl(providerId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlaceNotificationPreferenceQueryKey = (providerId: string,) => {
+    return [
+    `/api/venues/${providerId}/notification-preference`
+    ] as const;
+    }
+
+
+export const getGetPlaceNotificationPreferenceQueryOptions = <TData = Awaited<ReturnType<typeof getPlaceNotificationPreference>>, TError = ErrorType<unknown>>(providerId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlaceNotificationPreference>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlaceNotificationPreferenceQueryKey(providerId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlaceNotificationPreference>>> = ({ signal }) => getPlaceNotificationPreference(providerId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: providerId !== null && providerId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlaceNotificationPreference>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlaceNotificationPreferenceQueryResult = NonNullable<Awaited<ReturnType<typeof getPlaceNotificationPreference>>>
+export type GetPlaceNotificationPreferenceQueryError = ErrorType<unknown>
+
+
+
+export function useGetPlaceNotificationPreference<TData = Awaited<ReturnType<typeof getPlaceNotificationPreference>>, TError = ErrorType<unknown>>(
+ providerId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlaceNotificationPreference>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlaceNotificationPreferenceQueryOptions(providerId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetPlaceNotificationPreferenceUrl = (providerId: string,) => {
+
+
+
+
+  return `/api/venues/${providerId}/notification-preference`
+}
+
+export const setPlaceNotificationPreference = async (providerId: string,
+    notificationPreference: NotificationPreference, options?: Parameters<typeof customFetch>[1]): Promise<NotificationPreference> => {
+
+  return customFetch<NotificationPreference>(getSetPlaceNotificationPreferenceUrl(providerId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(notificationPreference)
+  }
+);}
+
+
+
+
+
+export const getSetPlaceNotificationPreferenceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPlaceNotificationPreference>>, TError,{providerId: string;data: BodyType<NotificationPreference>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setPlaceNotificationPreference>>, TError,{providerId: string;data: BodyType<NotificationPreference>}, TContext> => {
+
+const mutationKey = ['setPlaceNotificationPreference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setPlaceNotificationPreference>>, {providerId: string;data: BodyType<NotificationPreference>}> = (props) => {
+          const {providerId,data} = props ?? {};
+
+          return  setPlaceNotificationPreference(providerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetPlaceNotificationPreferenceMutationResult = NonNullable<Awaited<ReturnType<typeof setPlaceNotificationPreference>>>
+    export type SetPlaceNotificationPreferenceMutationBody = BodyType<NotificationPreference>
+    export type SetPlaceNotificationPreferenceMutationError = ErrorType<unknown>
+
+    export const useSetPlaceNotificationPreference = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPlaceNotificationPreference>>, TError,{providerId: string;data: BodyType<NotificationPreference>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setPlaceNotificationPreference>>,
+        TError,
+        {providerId: string;data: BodyType<NotificationPreference>},
+        TContext
+      > => {
+      return useMutation(getSetPlaceNotificationPreferenceMutationOptions(options));
+    }
 
 export const getGetEditorAccessUrl = () => {
 

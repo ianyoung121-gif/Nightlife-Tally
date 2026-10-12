@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, placeFavoritesTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { db, placeFavoritesTable, googleVenueLinksTable, barsTable } from "@workspace/db";
+import { and, eq, gt } from "drizzle-orm";
 import { getPublicPlace, validPlaceId } from "../lib/googlePlaces";
 import { requireSignedIn } from "../lib/authorization";
 
@@ -9,8 +9,29 @@ const router = Router();
 router.get("/venues/:providerId", async (req, res) => {
   const id = req.params.providerId;
   if (!validPlaceId(id)) { res.status(400).json({ error: "Invalid venue" }); return; }
-  try { res.json(await getPublicPlace(id)); }
+  try {
+    const [linked] = await db.select({ barId: googleVenueLinksTable.barId }).from(googleVenueLinksTable)
+      .innerJoin(barsTable, and(eq(barsTable.id, googleVenueLinksTable.barId), eq(barsTable.ownerId, googleVenueLinksTable.ownerId)))
+      .where(and(eq(googleVenueLinksTable.providerId, id), gt(googleVenueLinksTable.expiresAt, new Date())));
+    res.json({ ...await getPublicPlace(id), linkedBarId: linked?.barId ?? null });
+  }
   catch { res.status(503).json({ error: "Google venue details could not be loaded. Please try again." }); }
+});
+router.get("/venues/:providerId/notification-preference", async (req, res) => {
+  const userId = requireSignedIn(req, res); if (userId === null) return;
+  if (!validPlaceId(req.params.providerId)) { res.status(400).json({ error: "Invalid venue." }); return; }
+  const [favorite] = await db.select().from(placeFavoritesTable).where(and(eq(placeFavoritesTable.userId, userId), eq(placeFavoritesTable.providerId, req.params.providerId)));
+  res.json({ enabled: favorite?.notificationsEnabled ?? false });
+});
+router.put("/venues/:providerId/notification-preference", async (req, res) => {
+  const userId = requireSignedIn(req, res); if (userId === null) return;
+  if (!validPlaceId(req.params.providerId) || typeof req.body?.enabled !== "boolean") {
+    res.status(400).json({ error: "Choose a valid venue and notification preference." }); return;
+  }
+  const changed = await db.update(placeFavoritesTable).set({ notificationsEnabled: req.body.enabled })
+    .where(and(eq(placeFavoritesTable.userId, userId), eq(placeFavoritesTable.providerId, req.params.providerId))).returning({ id: placeFavoritesTable.id });
+  if (!changed.length) { res.status(409).json({ error: "Favorite this Google venue before enabling notifications." }); return; }
+  res.json({ enabled: req.body.enabled });
 });
 router.get("/me/place-favorites", async (req, res) => {
   const userId = requireSignedIn(req, res);

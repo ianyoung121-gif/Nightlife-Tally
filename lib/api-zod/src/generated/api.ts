@@ -8,6 +8,117 @@
 import * as zod from 'zod';
 
 
+
+
+
+export const GetVenueGoogleConnectionParams = zod.object({
+  "barId": zod.coerce.number().int().min(1)
+})
+
+export const GetVenueGoogleConnectionResponse = zod.object({
+  "configured": zod.boolean(),
+  "pending": zod.boolean(),
+  "providerId": zod.string().nullable(),
+  "verifiedAt": zod.string().nullable(),
+  "expiresAt": zod.string().nullable(),
+  "needsReverification": zod.boolean()
+})
+
+
+
+
+
+export const DisconnectVenueGoogleParams = zod.object({
+  "barId": zod.coerce.number().int().min(1)
+})
+
+export const DisconnectVenueGoogleResponse = zod.void()
+
+
+
+
+
+export const StartVenueGoogleConnectionParams = zod.object({
+  "barId": zod.coerce.number().int().min(1)
+})
+
+export const StartVenueGoogleConnectionResponse = zod.object({
+  "url": zod.string()
+})
+
+
+
+
+
+export const ListManagedGoogleLocationsParams = zod.object({
+  "barId": zod.coerce.number().int().min(1)
+})
+
+export const ListManagedGoogleLocationsResponseItem = zod.object({
+  "name": zod.string(),
+  "title": zod.string(),
+  "address": zod.string(),
+  "providerId": zod.string()
+})
+export const ListManagedGoogleLocationsResponse = zod.array(ListManagedGoogleLocationsResponseItem)
+
+
+
+
+
+export const LinkVenueGoogleLocationParams = zod.object({
+  "barId": zod.coerce.number().int().min(1)
+})
+
+export const linkVenueGoogleLocationBodyLocationNameRegExp = new RegExp('^locations/[0-9]+$');
+
+
+export const LinkVenueGoogleLocationBody = zod.object({
+  "locationName": zod.string().regex(linkVenueGoogleLocationBodyLocationNameRegExp),
+  "confirmedSameVenue": zod.boolean()
+})
+
+export const LinkVenueGoogleLocationResponse = zod.object({
+  "configured": zod.boolean(),
+  "pending": zod.boolean(),
+  "providerId": zod.string().nullable(),
+  "verifiedAt": zod.string().nullable(),
+  "expiresAt": zod.string().nullable(),
+  "needsReverification": zod.boolean()
+})
+
+
+export const FinishGoogleBusinessConnectionQueryParams = zod.object({
+  "state": zod.coerce.string().optional(),
+  "code": zod.coerce.string().optional(),
+  "error": zod.coerce.string().optional()
+})
+
+export const FinishGoogleBusinessConnectionResponse = zod.void()
+
+
+export const GetPlaceNotificationPreferenceParams = zod.object({
+  "providerId": zod.coerce.string()
+})
+
+export const GetPlaceNotificationPreferenceResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+export const SetPlaceNotificationPreferenceParams = zod.object({
+  "providerId": zod.coerce.string()
+})
+
+export const SetPlaceNotificationPreferenceBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const SetPlaceNotificationPreferenceResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
 export const GetEditorAccessResponse = zod.object({
   "canCurate": zod.boolean()
 })
@@ -78,7 +189,8 @@ export const GetPublicVenueResponse = zod.object({
   "googleMapsUri": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "hours": zod.array(zod.string()),
-  "businessStatus": zod.string().nullish()
+  "businessStatus": zod.string().nullish(),
+  "linkedBarId": zod.number().int().nullish()
 })
 
 

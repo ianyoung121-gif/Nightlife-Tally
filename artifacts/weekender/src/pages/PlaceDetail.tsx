@@ -6,6 +6,12 @@ import {
   useRemovePlaceFavorite,
   getGetPlaceFavoriteStatusQueryKey,
   getGetPlaceFavoritesQueryKey,
+  getCurrentSpecialChoices,
+  getGetPlaceNotificationPreferenceQueryKey,
+  getListBarSpecialsQueryKey,
+  useGetPlaceNotificationPreference,
+  useListBarSpecials,
+  useSetPlaceNotificationPreference,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@workspace/replit-auth-web";
@@ -14,7 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PublicSpecials } from "@/components/PublicSpecials";
 import { useToast } from "@/hooks/use-toast";
 import { errMsg } from "@/lib-err";
-import { Check, Clock, ExternalLink, Globe, MapPin, Phone, Star } from "lucide-react";
+import { useState } from "react";
+import { Bell, Check, Clock, ExternalLink, Globe, MapPin, Phone, Star } from "lucide-react";
 
 export function PlaceDetail() {
   const { providerId = "" } = useParams<{ providerId: string }>();
@@ -29,12 +36,28 @@ export function PlaceDetail() {
       qc.setQueryData(favKey, { favorited });
       qc.invalidateQueries({ queryKey: favKey });
       qc.invalidateQueries({ queryKey: getGetPlaceFavoritesQueryKey() });
+      qc.invalidateQueries({ queryKey: getGetPlaceNotificationPreferenceQueryKey(providerId) });
     },
     onError: (e: unknown) => toast({ title: errMsg(e, "Could not update favorite"), variant: "destructive" }),
   });
   const save = useSavePlaceFavorite({ mutation: done(true) });
   const remove = useRemovePlaceFavorite({ mutation: done(false) });
   const favorited = status.data?.favorited === true;
+  const linkedBarId = venue.data?.linkedBarId ?? undefined;
+  const ownerQ = useListBarSpecials(linkedBarId ?? 0, {
+    query: { enabled: linkedBarId !== undefined, queryKey: getListBarSpecialsQueryKey(linkedBarId ?? 0) },
+  });
+  const ownerCurrent = getCurrentSpecialChoices(ownerQ.data ?? [], []);
+  const prefKey = getGetPlaceNotificationPreferenceQueryKey(providerId);
+  const canPref = Boolean(user) && favorited;
+  const pref = useGetPlaceNotificationPreference(providerId, { query: { enabled: canPref, queryKey: prefKey } });
+  const [prefNote, setPrefNote] = useState("");
+  const setPref = useSetPlaceNotificationPreference({
+    mutation: {
+      onSuccess: (d) => { qc.setQueryData(prefKey, d); qc.invalidateQueries({ queryKey: prefKey }); },
+      onError: (e: unknown) => toast({ title: errMsg(e, "Could not update alerts"), variant: "destructive" }),
+    },
+  });
 
   const toggle = () => {
     if (!user) return login();
@@ -109,7 +132,60 @@ export function PlaceDetail() {
         >
           Spin this place's checked specials
         </Link>
-        <PublicSpecials target={{ providerId }} />
+        <div className="lg:col-span-3 space-y-8">
+          {linkedBarId !== undefined && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 space-y-3" data-testid="section-owner-specials">
+              <h2 className="text-2xl font-black uppercase tracking-tight">Posted by the venue owner</h2>
+              <p className="text-xs font-mono text-muted-foreground">
+                Posted by the verified owner on The Weekender, not supplied by Google. Expired specials are hidden.
+              </p>
+              {ownerQ.isLoading ? <Skeleton className="h-16 w-full" /> : ownerQ.isError ? (
+                <p className="text-sm font-mono text-muted-foreground">Could not load owner specials. <button className="underline text-accent" onClick={() => ownerQ.refetch()}>Retry</button></p>
+              ) : ownerCurrent.length === 0 ? (
+                <p className="text-sm font-mono text-muted-foreground">No current owner specials.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {ownerCurrent.map((c) => (
+                    <li key={c.id} className="rounded-lg border border-border/50 bg-card p-3">
+                      <p className="font-bold uppercase text-sm">{c.name}</p>
+                      {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
+                      <p className="text-[11px] font-mono text-muted-foreground mt-1">{c.expiresAt ? `Valid until ${new Date(c.expiresAt).toLocaleString()}` : "No expiry set by the owner"}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href={`/bars/${linkedBarId}`} data-testid="link-linked-bar" className="inline-block text-xs font-mono uppercase tracking-widest text-primary hover:underline">Open the managed venue page</Link>
+            </div>
+          )}
+          <PublicSpecials target={{ providerId }} />
+          <div className="rounded-2xl border border-border/50 bg-card/30 p-6 space-y-3" data-testid="section-place-alerts">
+            <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Bell className="w-5 h-5 text-accent" />Special alerts</h2>
+            <p className="text-xs font-mono text-muted-foreground">
+              Off by default. Only for favorites. Alerts are sent only when this place has a verified, paid owner. Delivery today is through the Android app, which must allow notification permission; this website cannot grant it.
+            </p>
+            {!user ? (
+              <Button variant="outline" onClick={() => login()}>Log in to manage alerts</Button>
+            ) : !favorited ? (
+              <p className="text-sm font-mono text-muted-foreground">Save this place as a favorite to choose alerts.</p>
+            ) : pref.isLoading ? <Skeleton className="h-9 w-40" /> : pref.isError ? (
+              <p className="text-sm font-mono text-muted-foreground">Could not load your alert choice. <button className="underline text-accent" onClick={() => pref.refetch()}>Retry</button></p>
+            ) : (
+              <Button
+                data-testid="button-place-alerts"
+                variant={pref.data?.enabled ? "secondary" : "default"}
+                disabled={setPref.isPending}
+                onClick={() => {
+                  const next = !pref.data?.enabled;
+                  setPrefNote(next ? "Alerts on. If your Android device has not allowed notifications, open the app to grant permission." : "");
+                  setPref.mutate({ providerId, data: { enabled: next } });
+                }}
+              >
+                {pref.data?.enabled ? "Turn alerts off" : "Turn alerts on"}
+              </Button>
+            )}
+            {prefNote && pref.data?.enabled && <p role="status" className="text-xs font-mono text-accent">{prefNote}</p>}
+          </div>
+        </div>
       </div>
     </div>
   );

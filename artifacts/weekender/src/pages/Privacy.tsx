@@ -13,23 +13,27 @@ export function Privacy() {
         <p className="max-w-2xl text-muted-foreground">
           The Weekender is built to help you find a venue and see the community pulse without turning your night into a personal consumption record.
         </p>
-        <p className="font-mono text-xs text-muted-foreground">Last updated: August 19, 2026</p>
+        <p className="font-mono text-xs text-muted-foreground">Last updated: October 12, 2026</p>
       </header>
 
       <PolicySection icon={MapPin} title="Location">
-        Location is optional. If you enable it, The Weekender uses your device location to sort nearby venues and build local plans. Your location stays on your device and is not sent to the Weekender service.
+        Location is optional. If you enable nearby discovery, your coordinates are sent to the Weekender service and Google Maps to find nearby venues. We use them for that request, not to save your location in your profile or attach it to drink tallies.
       </PolicySection>
 
       <PolicySection icon={ShieldCheck} title="Accounts and community data">
-        If you choose to sign in with Replit, The Weekender receives and stores the account information needed to operate your account, including your user ID, username, email address, and any profile image reference Replit provides. Community drink tallies are sent to the Weekender service only to update aggregate venue activity. The mobile tally flow does not attach a user ID to a tally or create a personal drinking history.
+        If you choose to sign in, Clerk handles authentication and The Weekender stores the account information needed to operate your account, including your user ID, username, email address, and any profile image reference your sign-in provider supplies. New community drink tallies are sent to the Weekender service to update aggregate venue activity without attaching your account ID or creating a personal drinking history in your profile.
       </PolicySection>
 
       <PolicySection icon={ShieldCheck} title="Favorites, notifications and payments">
-        Your profile saves the bars you follow and the places you favorite. We do not keep a drink history linked to your account. Accounts are not wholly anonymous: they hold your Replit sign-in details. If you use the Android app, a push device token is stored so we can send alerts, and only for venues you explicitly opt into. The website can change that opt-in but does not receive browser push. Venue owner billing is handled by our payment processor, Stripe, which stores payment details; we do not.
+        Your profile saves the bars you follow and the places you favorite, not a personal drink history. Accounts are not wholly anonymous: they hold your sign-in details and favorites. If you use the Android app, a push device token is stored so we can send alerts for venues you explicitly opt into. The website can change that opt-in but does not receive browser push. Venue owner billing is handled by our payment processor, Stripe; we do not store card details.
+      </PolicySection>
+
+      <PolicySection icon={ShieldCheck} title="Venue owner connection with Google">
+        Public Google venue details stay available without any owner verification. Owners can optionally connect Google to prove they manage a listing; linking is free and separate from the $5/month promotion membership. We ask for the Google business.manage permission, which is broad, but The Weekender only reads your Google listings to confirm management; it does not change them. During connection, a temporary Google authorization is stored encrypted and deleted once you choose and link a location. We do not store Google refresh tokens, so the proof lasts 30 days and you reconnect to renew it. This is a check at connection time, not continuous monitoring of Google management roles. An expired link blocks publishing until you reconnect, but an active membership, billing and account deletion remain available. Disconnecting in the dashboard removes the Weekender venue link, not Google's app permission; you can also revoke that permission in your Google Account's third-party connections. Favorites you save for Google places are never linked to a drink history, but accounts are not wholly anonymous.
       </PolicySection>
 
       <PolicySection icon={ShieldCheck} title="How we use and protect data">
-        We use account information to operate sign-in and follows, and anonymous tallies to show the community pulse at a venue. We do not sell personal data or use the current mobile app for advertising. The app uses encrypted HTTPS connections for its service requests. We do not include third-party advertising or analytics SDKs in the current mobile app.
+        We use account information to operate sign-in and follows, and anonymous tallies to show the community pulse at a venue. We do not sell personal data. Venue specials and opted-in promotion alerts may advertise venue offerings. The app uses encrypted HTTPS connections for its service requests. We do not include third-party advertising or analytics SDKs in the current mobile app.
       </PolicySection>
 
       <PolicySection icon={Mail} title="Your choices and contact">

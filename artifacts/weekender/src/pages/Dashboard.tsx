@@ -21,6 +21,8 @@ import {
   useStartVenueCheckout,
   useOpenVenueBillingPortal,
   useSendVenueNotification,
+  useGetVenueGoogleConnection,
+  getGetVenueGoogleConnectionQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ import { Flame, Star, Activity, Trash2, Plus, Users, Tag, Lock, Copy, Check, Loc
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@workspace/replit-auth-web";
 import { VenueSetupForm } from "@/components/VenueSetupForm";
+import { GoogleOwnerConnection } from "@/components/GoogleOwnerConnection";
 import { errMsg } from "@/lib-err";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -138,6 +141,10 @@ export function Dashboard() {
     query: { enabled: barId > 0 && Boolean(user), queryKey: getGetVenueMembershipQueryKey(barId, membershipParams) },
   });
   const isSubscribed = membership.data?.active === true;
+  const googleConn = useGetVenueGoogleConnection(barId, { query: { enabled: barId > 0 && Boolean(user), queryKey: getGetVenueGoogleConnectionQueryKey(barId) } });
+  const googleReady = googleConn.isSuccess && googleConn.data?.needsReverification === false;
+  const canPublish = isSubscribed && googleReady;
+  const publishBlockNote = !isSubscribed ? "" : googleConn.isError ? "Could not check your Google connection, so publishing is paused. Retry from the Google card." : googleConn.isLoading ? "Checking your Google connection before publishing." : googleConn.data?.needsReverification ? "Your Google proof expired. Reconnect Google to publish. Membership and billing stay active, and you can still delete items." : "";
   const goTo = (url: string) => { window.location.assign(url); };
   const checkout = useStartVenueCheckout({
     mutation: {
@@ -165,7 +172,7 @@ export function Dashboard() {
   const handleSendNotice = (e: React.FormEvent) => {
     e.preventDefault();
     setNoticeResult(null);
-    if (!notice.title.trim() || !notice.body.trim()) return;
+    if (!canPublish || !notice.title.trim() || !notice.body.trim()) return;
     if (!window.confirm("Send this to followers who opted in to alerts from your venue? You can send one every 24 hours.")) return;
     sendNotice.mutate({ barId, data: { title: notice.title.trim(), body: notice.body.trim() } });
   };
@@ -319,7 +326,7 @@ export function Dashboard() {
 
   const handleCreateSpecial = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSpecial.title || !isSubscribed) return;
+    if (!newSpecial.title || !canPublish) return;
     createSpecial.mutate({ barId, data: newSpecial });
   };
 
@@ -331,7 +338,7 @@ export function Dashboard() {
 
   const handleCreateCoupon = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCoupon.title || !newCoupon.discountType || !isSubscribed) return;
+    if (!newCoupon.title || !newCoupon.discountType || !canPublish) return;
     createCoupon.mutate({
       barId,
       data: {
@@ -408,6 +415,8 @@ export function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <GoogleOwnerConnection barId={barId} />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -557,10 +566,11 @@ export function Dashboard() {
               <div className="pt-4 border-t border-border">
                 <h4 className="text-sm font-bold uppercase mb-3 text-primary">Add Special</h4>
                 {!isSubscribed && <p className="text-xs font-mono text-muted-foreground mb-3">An active membership is required to publish new specials. You can still delete existing ones.</p>}
+                {publishBlockNote && <p className="text-xs font-mono text-yellow-300 mb-3" role="status">{publishBlockNote}</p>}
                 <form onSubmit={handleCreateSpecial} className="space-y-3">
                   <Input placeholder="Special Title (e.g. $5 Margaritas)" value={newSpecial.title} onChange={e => setNewSpecial({...newSpecial, title: e.target.value})} className="bg-background" />
                   <Input placeholder="Description (Optional)" value={newSpecial.description} onChange={e => setNewSpecial({...newSpecial, description: e.target.value})} className="bg-background" />
-                  <Button type="submit" variant="secondary" disabled={createSpecial.isPending || !isSubscribed} className="w-full">
+                  <Button type="submit" variant="secondary" disabled={createSpecial.isPending || !canPublish} className="w-full">
                     <Plus className="w-4 h-4 mr-2" /> Publish Special
                   </Button>
                 </form>
@@ -581,11 +591,12 @@ export function Dashboard() {
                 <p className="text-sm text-muted-foreground font-mono">Requires an active membership.</p>
               ) : (
                 <form onSubmit={handleSendNotice} className="space-y-3">
+                  {publishBlockNote && <p className="text-xs font-mono text-yellow-300" role="status">{publishBlockNote}</p>}
                   <Input required maxLength={80} placeholder="Title" value={notice.title} onChange={e => setNotice({ ...notice, title: e.target.value })} className="bg-background" />
                   <textarea required maxLength={240} placeholder="Message" value={notice.body} onChange={e => setNotice({ ...notice, body: e.target.value })} className="w-full min-h-[80px] p-3 rounded-md border border-input bg-background text-sm" />
                   <p className="text-[10px] font-mono text-muted-foreground">{notice.title.length}/80 title · {notice.body.length}/240 message</p>
                   {noticeResult && <p role="status" className={`text-xs font-mono ${noticeResult.ok ? "text-accent" : "text-destructive"}`}>{noticeResult.text}</p>}
-                  <Button type="submit" className="w-full" disabled={sendNotice.isPending}>{sendNotice.isPending ? "Sending…" : "Send to opted-in followers"}</Button>
+                  <Button type="submit" className="w-full" disabled={sendNotice.isPending || !canPublish}>{sendNotice.isPending ? "Sending…" : "Send to opted-in followers"}</Button>
                 </form>
               )}
             </CardContent>
@@ -688,6 +699,7 @@ export function Dashboard() {
                   {/* Create new coupon */}
                   <div className="pt-4 border-t border-primary/20">
                     <h4 className="text-sm font-bold uppercase mb-3 text-primary">Create Coupon</h4>
+                    {publishBlockNote && <p className="text-xs font-mono text-yellow-300 mb-3" role="status">{publishBlockNote}</p>}
                     <form onSubmit={handleCreateCoupon} className="space-y-3">
                       <Input
                         placeholder="Coupon Title (e.g. Happy Hour Discount)"
@@ -741,7 +753,7 @@ export function Dashboard() {
                           />
                         </div>
                       </div>
-                      <Button type="submit" className="w-full" disabled={createCoupon.isPending}>
+                      <Button type="submit" className="w-full" disabled={createCoupon.isPending || !canPublish}>
                         <Plus className="w-4 h-4 mr-2" /> Generate Coupon Code
                       </Button>
                     </form>

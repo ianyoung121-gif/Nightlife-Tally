@@ -132,8 +132,10 @@ export function DrinkSourcePanel({
   const venueQ = useGetPublicVenue(contextProviderId ?? "", {
     query: { enabled: !!contextProviderId, queryKey: getGetPublicVenueQueryKey(contextProviderId ?? "") },
   });
-  const ownerQ = useListBarSpecials(barId ?? 0, {
-    query: { enabled: source === "specials" && barId !== undefined, refetchInterval: 30_000, queryKey: getListBarSpecialsQueryKey(barId ?? 0) },
+  const linkedBarId = providerId && contextProviderId === providerId ? venueQ.data?.linkedBarId ?? undefined : undefined;
+  const ownerBarId = barId ?? linkedBarId;
+  const ownerQ = useListBarSpecials(ownerBarId ?? 0, {
+    query: { enabled: source === "specials" && ownerBarId !== undefined, refetchInterval: 30_000, queryKey: getListBarSpecialsQueryKey(ownerBarId ?? 0) },
   });
   const pubParams = barId !== undefined ? { barId } : { providerId: providerId ?? "" };
   const publicQ = useListPublicSpecials(pubParams, {
@@ -149,12 +151,12 @@ export function DrinkSourcePanel({
     [sel, ownerQ.data, publicQ.data, now],
   );
 
-  const loading = sel !== "" && ((barId !== undefined && (ownerQ.isLoading || barsQ.isLoading)) || (providerId !== undefined && venueQ.isLoading) || publicQ.isLoading);
-  const failed = sel !== "" && ((barId !== undefined && (ownerQ.isError || barsQ.isError)) || (providerId !== undefined && venueQ.isError) || publicQ.isError);
+  const loading = sel !== "" && ((barId !== undefined && (ownerQ.isLoading || barsQ.isLoading)) || (providerId !== undefined && (venueQ.isLoading || (linkedBarId !== undefined && ownerQ.isLoading))) || publicQ.isLoading);
+  const failed = sel !== "" && ((barId !== undefined && (ownerQ.isError || barsQ.isError)) || (providerId !== undefined && (venueQ.isError || (linkedBarId !== undefined && ownerQ.isError))) || publicQ.isError);
   const retry = () => {
     if (barId !== undefined) void barsQ.refetch();
     if (providerId) void venueQ.refetch();
-    if (barId !== undefined) void ownerQ.refetch();
+    if (ownerBarId !== undefined) void ownerQ.refetch();
     void publicQ.refetch();
   };
 
@@ -199,7 +201,7 @@ export function DrinkSourcePanel({
               className="w-full rounded-lg border border-border/50 bg-card px-3 py-2.5 text-sm text-white disabled:opacity-50"
             >
               <option value="">Choose a venue</option>
-              {contextProviderId && <option value={`place:${contextProviderId}`}>{venueQ.data?.name ?? "Google Maps place"} (checked specials only)</option>}
+              {contextProviderId && <option value={`place:${contextProviderId}`}>{venueQ.data?.name ?? "Google Maps place"} (Google place)</option>}
               {(barsQ.data ?? []).map((b) => (
                 <option key={b.id} value={`bar:${b.id}`}>
                   {b.name}{b.address ? ` - ${b.address}` : ""}
@@ -228,7 +230,9 @@ export function DrinkSourcePanel({
                 )}
                 {providerId && (
                   <p className="text-[11px] font-mono text-muted-foreground mt-2">
-                    Google Maps place: only checked public specials can appear. Owner specials are not linked to it.
+                    {linkedBarId !== undefined
+                      ? "Google Maps place linked to a verified Weekender owner. Current owner specials and checked public specials can appear; Google does not supply specials."
+                      : "Google Maps place: only checked public specials can appear. No owner is linked."}
                   </p>
                 )}
               </div>

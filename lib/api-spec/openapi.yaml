@@ -28,6 +28,100 @@ tags:
     description: Account session operations
 
 paths:
+  /bars/{barId}/google-business:
+    parameters:
+      - { name: barId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: getVenueGoogleConnection
+      tags: [bars]
+      responses:
+        "200":
+          description: Owner-only Google connection status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GoogleConnectionStatus" }
+    delete:
+      operationId: disconnectVenueGoogle
+      tags: [bars]
+      responses:
+        "204": { description: Link and temporary credentials removed; favorites remain unchanged }
+  /bars/{barId}/google-business/connect:
+    parameters:
+      - { name: barId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      operationId: startVenueGoogleConnection
+      tags: [bars]
+      responses:
+        "200":
+          description: Google OAuth URL; the browser must retain the HTTP-only state cookie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BillingRedirect" }
+  /bars/{barId}/google-business/locations:
+    parameters:
+      - { name: barId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: listManagedGoogleLocations
+      tags: [bars]
+      responses:
+        "200":
+          description: Transient US locations visible to the authorized Google account
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ManagedGoogleLocation" }
+    post:
+      operationId: linkVenueGoogleLocation
+      tags: [bars]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GoogleLocationChoice" }
+      responses:
+        "200":
+          description: Authorized management and Google verification checked server-side
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GoogleConnectionStatus" }
+  /google-business/callback:
+    get:
+      operationId: finishGoogleBusinessConnection
+      tags: [bars]
+      parameters:
+        - { name: state, in: query, schema: { type: string } }
+        - { name: code, in: query, schema: { type: string } }
+        - { name: error, in: query, schema: { type: string } }
+      responses:
+        "302": { description: Return to the owner dashboard; success still requires selecting a venue }
+        "400": { description: "Invalid, expired or replayed callback" }
+  /venues/{providerId}/notification-preference:
+    parameters:
+      - { name: providerId, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getPlaceNotificationPreference
+      tags: [follows]
+      responses:
+        "200":
+          description: Google favorite notification preference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPreference" }
+    put:
+      operationId: setPlaceNotificationPreference
+      tags: [follows]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationPreference" }
+      responses:
+        "200":
+          description: Explicit opt-in saved for this favorite only
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPreference" }
   /me/editor-access:
     get:
       operationId: getEditorAccess
@@ -800,6 +894,30 @@ components:
       in: cookie
       name: weekender_session
   schemas:
+    GoogleLocationChoice:
+      type: object
+      required: [locationName, confirmedSameVenue]
+      properties:
+        locationName: { type: string, pattern: "^locations/[0-9]+$" }
+        confirmedSameVenue: { type: boolean }
+    ManagedGoogleLocation:
+      type: object
+      required: [name, title, address, providerId]
+      properties:
+        name: { type: string }
+        title: { type: string }
+        address: { type: string }
+        providerId: { type: string }
+    GoogleConnectionStatus:
+      type: object
+      required: [configured, pending, providerId, verifiedAt, expiresAt, needsReverification]
+      properties:
+        configured: { type: boolean }
+        pending: { type: boolean }
+        providerId: { type: [string, "null"] }
+        verifiedAt: { type: [string, "null"] }
+        expiresAt: { type: [string, "null"] }
+        needsReverification: { type: boolean }
     NotificationPreference:
       type: object
       required: [enabled]
@@ -828,6 +946,7 @@ components:
         phone: { type: [string, "null"] }
         hours: { type: array, items: { type: string } }
         businessStatus: { type: [string, "null"] }
+        linkedBarId: { type: [integer, "null"] }
     PublicSpecial:
       type: object
       required: [id, title, description, sourceUrl, checkedAt, expiresAt]

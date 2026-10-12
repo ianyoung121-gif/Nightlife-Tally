@@ -27,6 +27,12 @@ Use Google Business Profile verification to connect owner-managed profiles to Go
 
 **How to apply:** Verify Google-authorized management of the specific business before linking it to an owner account. Keep public venue visibility independent of this check. Google Business Profile API approval and OAuth access are separate from existing Google Maps API keys; do not represent Maps access as ownership proof.
 
+The initial Google connection uses explicit renewal rather than retaining permanent Google-account access.
+
+**Why:** This is a launch tradeoff to minimize sensitive credentials in a privacy-focused product, not a Google requirement. A connection-time check cannot detect every subsequent Google role change.
+
+**How to apply:** Before introducing silent renewal, review owner consent, encrypted credential retention, revocation, deletion and the privacy policy together. Keep business-management authorization separate from ordinary account sign-in.
+
 Drink Spin has separate choices for a selected bar's specials and a curated list of 20 common bar drinks.
 
 **Why:** The user wants to choose between the venue's specials and a random drink that is not necessarily on that venue's menu.

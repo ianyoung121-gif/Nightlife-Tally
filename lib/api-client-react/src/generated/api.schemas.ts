@@ -5,6 +5,31 @@
  * The Weekender API
  * OpenAPI spec version: 0.1.0
  */
+export interface GoogleLocationChoice {
+  /** @pattern ^locations/[0-9]+$ */
+  locationName: string;
+  confirmedSameVenue: boolean;
+}
+
+export interface ManagedGoogleLocation {
+  name: string;
+  title: string;
+  address: string;
+  providerId: string;
+}
+
+export interface GoogleConnectionStatus {
+  configured: boolean;
+  pending: boolean;
+  /** @nullable */
+  providerId: string | null;
+  /** @nullable */
+  verifiedAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  needsReverification: boolean;
+}
+
 export interface NotificationPreference {
   enabled: boolean;
 }
@@ -35,6 +60,8 @@ export interface PublicVenue {
   hours: string[];
   /** @nullable */
   businessStatus?: string | null;
+  /** @nullable */
+  linkedBarId?: number | null;
 }
 
 export interface PublicSpecial {
@@ -303,6 +330,12 @@ export interface TrendingStats {
   topDrinks: Drink[];
   topBars: Bar[];
 }
+
+export type FinishGoogleBusinessConnectionParams = {
+state?: string;
+code?: string;
+error?: string;
+};
 
 export type GetEditorAccess200 = {
   canCurate: boolean;

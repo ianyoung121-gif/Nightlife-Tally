@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, barFollowsTable, pushDevicesTable, promotionMessagesTable, barsTable } from "@workspace/db";
+import { db, barFollowsTable, pushDevicesTable, promotionMessagesTable, barsTable, googleVenueLinksTable, placeFavoritesTable } from "@workspace/db";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import { requireSignedIn, requirePaidBarOwner } from "../lib/authorization";
@@ -56,6 +56,15 @@ router.post("/bars/:barId/notifications", async (req, res) => {
     const recipients = await tx.selectDistinct({ token: pushDevicesTable.token }).from(pushDevicesTable)
       .innerJoin(barFollowsTable, eq(pushDevicesTable.userId, barFollowsTable.userId))
       .where(and(eq(barFollowsTable.barId, barId), eq(barFollowsTable.notificationsEnabled, true)));
+    const [link] = await tx.select().from(googleVenueLinksTable).where(and(eq(googleVenueLinksTable.barId, barId),
+      eq(googleVenueLinksTable.ownerId, bar.ownerId!), gt(googleVenueLinksTable.expiresAt, new Date())));
+    if (link) {
+      const googleRecipients = await tx.selectDistinct({ token: pushDevicesTable.token }).from(pushDevicesTable)
+        .innerJoin(placeFavoritesTable, eq(pushDevicesTable.userId, placeFavoritesTable.userId))
+        .where(and(eq(placeFavoritesTable.providerId, link.providerId), eq(placeFavoritesTable.notificationsEnabled, true)));
+      const seen = new Set(recipients.map(r => r.token));
+      for (const recipient of googleRecipients) if (!seen.has(recipient.token)) { recipients.push(recipient); seen.add(recipient.token); }
+    }
     if (!recipients.length) return { empty: true as const };
     const [message] = await tx.insert(promotionMessagesTable).values({ barId, ...parsed.data }).returning();
     return { message, recipients, barName: bar.name };
