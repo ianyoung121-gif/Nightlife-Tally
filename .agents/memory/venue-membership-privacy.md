@@ -3,7 +3,7 @@ name: Venue membership and patron privacy
 description: Public venue visibility, the $5 owner membership, and favorites-only patron profiles.
 ---
 
-Bar owners do not need to verify a bar for it to show its information. The user wants public information from Google to populate venues, including specials where available.
+Bar owners do not need to verify a bar for it to show its information. Google supplies public venue details. Before an owner subscribes, use specials checked against the bar's official website, with a source and expiry; the user selected this ongoing-curation approach.
 
 **Why:** The user explicitly clarified the pre-release product model.
 
