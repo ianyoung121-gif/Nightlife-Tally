@@ -81,7 +81,7 @@ export function BarBrowser() {
 
   const locationLabel = () => {
     if (locState.status === "loading") return <><Loader2 className="w-4 h-4 animate-spin" /> Locating…</>;
-    if (locState.status === "granted" && sortByDistance) return <><Navigation className="w-4 h-4" /> Near Me ✓</>;
+    if (locState.status === "granted" && sortByDistance) return <><Navigation className="w-4 h-4" /> Near Me</>;
     return <><MapPin className="w-4 h-4" /> Near Me</>;
   };
   const isNearbyMode = sortByDistance && locState.status === "granted";
@@ -192,7 +192,7 @@ export function BarBrowser() {
           </h3>
           <p className="text-muted-foreground font-mono">
             {sortByDistance
-              ? "We only rank venues with a verified location, so distance results stay accurate."
+              ? "We only rank Weekender profiles that have a confirmed map pin, so distance results stay accurate."
               : `We couldn't find anything matching "${search}".`}
           </p>
         </div>
@@ -231,7 +231,7 @@ export function BarBrowser() {
             <p className="text-xs font-mono uppercase tracking-[0.18em] text-accent">Live nearby discovery</p>
             <h2 className="text-2xl font-black uppercase tracking-tight">More bars around you</h2>
             <p className="text-sm text-muted-foreground">
-              These venues are nearby but are not verified Weekender profiles yet, so tallies are not available.
+              These venues are nearby and open to everyone with public details. They have no Weekender profile yet, so tallies are not available.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

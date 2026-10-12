@@ -1,10 +1,49 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppIcon as Feather } from '@/components/AppIcon';
-import { useGetTrendingStats } from '@workspace/api-client-react';
+import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  getGetBarFollowStatusQueryKey,
+  getGetPlaceFavoriteStatusQueryKey,
+  getGetPlaceFavoritesQueryKey,
+  getGetUserFollowingQueryKey,
+  useGetPlaceFavorites,
+  useGetPublicVenue,
+  useGetTrendingStats,
+  useGetUserFollowing,
+  useRemovePlaceFavorite,
+  useUnfollowBar,
+} from '@workspace/api-client-react';
+import { disableDeviceNotifications, getStoredPushToken, notificationsSupported } from '@/lib/notifications';
 import { useColors } from '@/hooks/useColors';
 import { useDeviceLocation } from '@/context/LocationContext';
 import { useAuth } from '@/lib/auth';
+
+function PlaceFavoriteRow({ providerId, colors, onOpen, onRemove, busy }: {
+  providerId: string;
+  colors: ReturnType<typeof useColors>;
+  onOpen: () => void;
+  onRemove: () => void;
+  busy: boolean;
+}) {
+  const venue = useGetPublicVenue(providerId);
+  return (
+    <View style={[styles.setting, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Pressable style={styles.settingCopy} onPress={onOpen}>
+        <Text numberOfLines={1} style={[styles.settingTitle, { color: colors.foreground }]}>
+          {venue.data?.name ?? (venue.isError ? 'Venue unavailable' : 'Loading venue')}
+        </Text>
+        <Text numberOfLines={1} style={[styles.settingDetail, { color: colors.mutedForeground }]}>
+          {venue.data?.address ?? 'Google venue'}
+        </Text>
+      </Pressable>
+      <Pressable disabled={busy} onPress={onRemove} accessibilityLabel="Remove favorite">
+        <Text style={[styles.enable, { color: colors.destructive }]}>REMOVE</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -12,10 +51,56 @@ export default function ProfileScreen() {
   const location = useDeviceLocation();
   const { user, isLoading, authError, login, logout, deleteAccount } = useAuth();
 
+  const router = useRouter();
+  const qc = useQueryClient();
+  const userId = user?.id ?? 0;
+  const followingQuery = useGetUserFollowing(userId, {
+    query: { enabled: Boolean(user), queryKey: getGetUserFollowingQueryKey(userId) },
+  });
+  const placesQuery = useGetPlaceFavorites({
+    query: { enabled: Boolean(user), queryKey: getGetPlaceFavoritesQueryKey() },
+  });
+  const unfollow = useUnfollowBar({
+    mutation: {
+      onSuccess: (_d, vars) => {
+        void qc.invalidateQueries({ queryKey: getGetUserFollowingQueryKey(userId) });
+        void qc.invalidateQueries({ queryKey: getGetBarFollowStatusQueryKey(vars.barId, userId) });
+      },
+    },
+  });
+  const removePlace = useRemovePlaceFavorite({
+    mutation: {
+      onSuccess: (_d, vars) => {
+        void qc.invalidateQueries({ queryKey: getGetPlaceFavoritesQueryKey() });
+        void qc.invalidateQueries({ queryKey: getGetPlaceFavoriteStatusQueryKey(vars.providerId) });
+      },
+    },
+  });
+  const [deviceRegistered, setDeviceRegistered] = useState(false);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  useEffect(() => {
+    void getStoredPushToken().then((t) => setDeviceRegistered(Boolean(t)));
+  }, [user]);
+  const removeDevice = async () => {
+    setDeviceBusy(true);
+    setDeviceError(null);
+    try {
+      await disableDeviceNotifications();
+      setDeviceRegistered(false);
+    } catch {
+      setDeviceError('Couldn’t remove this device. Check your connection and try again.');
+    } finally {
+      setDeviceBusy(false);
+    }
+  };
+  const barFavorites = followingQuery.data ?? [];
+  const placeFavorites = placesQuery.data ?? [];
+
   const confirmAccountDeletion = () => {
     Alert.alert(
       'Delete your account?',
-      'This permanently removes your Weekender account, active sessions, and saved follows. Anonymous drink tallies remain aggregate community data.',
+      'This permanently removes your Weekender account, sessions, favorites, and notification registrations. Any venue memberships are cancelled immediately. Public venue info and anonymous community tally totals remain.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -59,6 +144,70 @@ export default function ProfileScreen() {
             <Feather name="trash-2" size={15} color={colors.destructive} />
             <Text style={[styles.deleteAccountText, { color: colors.destructive }]}>DELETE ACCOUNT</Text>
           </Pressable>
+        )}
+
+        {user && (
+          <View style={styles.settingList}>
+            <Text style={[styles.settingTitle, { color: colors.foreground }]}>Favorites</Text>
+            <Text style={[styles.settingDetail, { color: colors.mutedForeground }]}>Your account saves favorite venues only.</Text>
+            {(followingQuery.isLoading || placesQuery.isLoading) && <Text style={[styles.settingDetail, { color: colors.mutedForeground }]}>Loading favorites...</Text>}
+            {(followingQuery.isError || placesQuery.isError) && (
+              <Pressable onPress={() => { void followingQuery.refetch(); void placesQuery.refetch(); }}>
+                <Text style={[styles.authError, { color: colors.destructive, marginTop: 0 }]}>Couldn’t load favorites. TAP TO RETRY</Text>
+              </Pressable>
+            )}
+            {(unfollow.isError || removePlace.isError) && (
+              <Text style={[styles.authError, { color: colors.destructive, marginTop: 0 }]}>Couldn’t remove that favorite. Try again.</Text>
+            )}
+            {!followingQuery.isLoading && !placesQuery.isLoading && barFavorites.length + placeFavorites.length === 0 && !followingQuery.isError && !placesQuery.isError && (
+              <View style={[styles.setting, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Feather name="heart" size={18} color={colors.mutedForeground} />
+                <Text style={[styles.settingDetail, { color: colors.mutedForeground, flex: 1 }]}>No favorites yet. Save a venue from its page.</Text>
+              </View>
+            )}
+            {barFavorites.map((bar) => (
+              <View key={`bar-${bar.id}`} style={[styles.setting, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Pressable style={styles.settingCopy} onPress={() => router.push({ pathname: '/bars/[barId]', params: { barId: String(bar.id) } })}>
+                  <Text numberOfLines={1} style={[styles.settingTitle, { color: colors.foreground }]}>{bar.name}</Text>
+                  {bar.address && <Text numberOfLines={1} style={[styles.settingDetail, { color: colors.mutedForeground }]}>{bar.address}</Text>}
+                </Pressable>
+                <Pressable disabled={unfollow.isPending} onPress={() => unfollow.mutate({ barId: bar.id, data: { userId } })} accessibilityLabel="Remove favorite">
+                  <Text style={[styles.enable, { color: colors.destructive }]}>REMOVE</Text>
+                </Pressable>
+              </View>
+            ))}
+            {placeFavorites.map((p) => (
+              <PlaceFavoriteRow
+                key={`place-${p.providerId}`}
+                providerId={p.providerId}
+                colors={colors}
+                busy={removePlace.isPending}
+                onOpen={() => router.push({ pathname: '/places/[providerId]' as '/bars/[barId]', params: { providerId: p.providerId } as never })}
+                onRemove={() => removePlace.mutate({ providerId: p.providerId })}
+              />
+            ))}
+          </View>
+        )}
+
+        {user && notificationsSupported() && (
+          <View style={[styles.setting, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.accent + '26' }]}>
+              <Feather name="radio" size={18} color={colors.accent} />
+            </View>
+            <View style={styles.settingCopy}>
+              <Text style={[styles.settingTitle, { color: colors.foreground }]}>Device notifications</Text>
+              <Text style={[styles.settingDetail, { color: deviceError ? colors.destructive : colors.mutedForeground }]}>
+                {deviceError ?? (deviceRegistered
+                  ? 'This device is registered. Turn alerts on or off per favorite venue.'
+                  : 'Off. Enable alerts from a favorite venue page.')}
+              </Text>
+            </View>
+            {deviceRegistered && (
+              <Pressable disabled={deviceBusy} onPress={() => void removeDevice()}>
+                <Text style={[styles.enable, { color: colors.destructive }]}>{deviceBusy ? 'WORKING' : 'REMOVE'}</Text>
+              </Pressable>
+            )}
+          </View>
         )}
 
         <View style={[styles.communityCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

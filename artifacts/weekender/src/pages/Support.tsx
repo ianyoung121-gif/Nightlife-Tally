@@ -32,7 +32,7 @@ export function Support() {
       <div className="flex gap-4 rounded-2xl border border-border/70 bg-card/50 p-6">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
         <p className="leading-7 text-muted-foreground">
-          For an account or privacy question, include the email address used to sign in with Replit and tell us which part of the app you were using. To delete an account, use the in-app Profile screen or the public account deletion page. The mobile app does not keep a personal drink history.
+          For an account or privacy question, include the email address used to sign in with Replit and tell us which part of the app you were using. To delete an account, use the in-app Profile screen or the public account deletion page. We do not keep a drink history linked to your profile. Billing questions about a venue subscription can be managed through the billing portal on the owner dashboard, and push alerts are an Android app feature.
         </p>
       </div>
     </div>

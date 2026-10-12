@@ -24,6 +24,10 @@ export function Privacy() {
         If you choose to sign in with Replit, The Weekender receives and stores the account information needed to operate your account, including your user ID, username, email address, and any profile image reference Replit provides. Community drink tallies are sent to the Weekender service only to update aggregate venue activity. The mobile tally flow does not attach a user ID to a tally or create a personal drinking history.
       </PolicySection>
 
+      <PolicySection icon={ShieldCheck} title="Favorites, notifications and payments">
+        Your profile saves the bars you follow and the places you favorite. We do not keep a drink history linked to your account. Accounts are not wholly anonymous: they hold your Replit sign-in details. If you use the Android app, a push device token is stored so we can send alerts, and only for venues you explicitly opt into. The website can change that opt-in but does not receive browser push. Venue owner billing is handled by our payment processor, Stripe, which stores payment details; we do not.
+      </PolicySection>
+
       <PolicySection icon={ShieldCheck} title="How we use and protect data">
         We use account information to operate sign-in and follows, and anonymous tallies to show the community pulse at a venue. We do not sell personal data or use the current mobile app for advertising. The app uses encrypted HTTPS connections for its service requests. We do not include third-party advertising or analytics SDKs in the current mobile app.
       </PolicySection>

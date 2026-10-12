@@ -5,6 +5,63 @@
  * The Weekender API
  * OpenAPI spec version: 0.1.0
  */
+export interface NotificationPreference {
+  enabled: boolean;
+}
+
+export interface PushDeviceInput {
+  token: string;
+}
+
+export interface BillingRedirect {
+  url: string;
+}
+
+export interface PlaceFavoriteStatus {
+  favorited: boolean;
+}
+
+export interface PublicVenue {
+  providerId: string;
+  name: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  websiteUri?: string | null;
+  /** @nullable */
+  googleMapsUri?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  hours: string[];
+  /** @nullable */
+  businessStatus?: string | null;
+}
+
+export interface PublicSpecial {
+  id: number;
+  /** @nullable */
+  barId?: number | null;
+  /** @nullable */
+  providerId?: string | null;
+  title: string;
+  description: string;
+  sourceUrl: string;
+  checkedAt: string;
+  expiresAt: string;
+}
+
+export interface CheckedSpecialInput {
+  barId?: number;
+  providerId?: string;
+  /** @maxLength 100 */
+  title: string;
+  /** @maxLength 1000 */
+  description: string;
+  sourceUrl: string;
+  expiresAt: string;
+  confirmedChecked: boolean;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -113,12 +170,12 @@ export interface BarInput {
      * @minimum -90
      * @maximum 90
      */
-  latitude: number;
+  latitude?: number;
   /**
      * @minimum -180
      * @maximum 180
      */
-  longitude: number;
+  longitude?: number;
 }
 
 export interface BarUpdate {
@@ -246,6 +303,43 @@ export interface TrendingStats {
   topDrinks: Drink[];
   topBars: Bar[];
 }
+
+export type GetEditorAccess200 = {
+  canCurate: boolean;
+};
+
+export type ListPublicSpecialsParams = {
+barId?: number;
+providerId?: string;
+};
+
+export type GetPlaceFavorites200Item = {
+  providerId: string;
+};
+
+export type GetVenueMembershipParams = {
+checkoutSessionId?: string;
+};
+
+export type GetVenueMembership200 = {
+  active: boolean;
+  monthlyPrice: number;
+  currency: string;
+  cancelAtPeriodEnd: boolean;
+};
+
+export type SendVenueNotificationBody = {
+  /** @maxLength 80 */
+  title: string;
+  /** @maxLength 240 */
+  body: string;
+};
+
+export type SendVenueNotification200 = {
+  accepted: number;
+  failed: number;
+  message: string;
+};
 
 export type ListBarsParams = {
 search?: string;

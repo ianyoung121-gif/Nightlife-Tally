@@ -1,6 +1,7 @@
 import React from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppIcon as Feather } from '@/components/AppIcon';
+import { useRouter } from 'expo-router';
 import type { DiscoveredVenue } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { formatDistance } from '@/utils/location';
@@ -17,12 +18,13 @@ function mapsUrl(venue: DiscoveredVenue): string {
 
 export function LiveVenueCard({ venue }: LiveVenueCardProps) {
   const colors = useColors();
+  const router = useRouter();
 
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`Open ${venue.name} in Google Maps`}
-      onPress={() => void Linking.openURL(mapsUrl(venue))}
+      accessibilityLabel={`View ${venue.name}`}
+      onPress={() => router.push({ pathname: '/places/[providerId]' as '/bars/[barId]', params: { providerId: venue.providerId } as never })}
       style={({ pressed }) => [
         styles.card,
         {
@@ -37,7 +39,9 @@ export function LiveVenueCard({ venue }: LiveVenueCardProps) {
           <Feather name="radio" size={12} color={colors.accent} />
           <Text style={[styles.sourceText, { color: colors.accent }]}>LIVE NEARBY</Text>
         </View>
-        <Feather name="external-link" size={16} color={colors.mutedForeground} />
+        <Pressable accessibilityRole="link" accessibilityLabel={`Open ${venue.name} in Google Maps`} hitSlop={10} onPress={() => void Linking.openURL(mapsUrl(venue))}>
+          <Feather name="external-link" size={16} color={colors.mutedForeground} />
+        </Pressable>
       </View>
 
       <Text numberOfLines={2} style={[styles.name, { color: colors.foreground }]}>
@@ -55,7 +59,7 @@ export function LiveVenueCard({ venue }: LiveVenueCardProps) {
         <Feather name="navigation" size={13} color={colors.accent} />
         <Text style={[styles.distance, { color: colors.accent }]}>{formatDistance(venue.distanceMiles)}</Text>
       </View>
-      <Text style={[styles.action, { color: colors.mutedForeground }]}>OPEN IN GOOGLE MAPS</Text>
+      <Text style={[styles.action, { color: colors.mutedForeground }]}>VIEW DETAILS</Text>
     </Pressable>
   );
 }

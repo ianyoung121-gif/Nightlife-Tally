@@ -11,6 +11,7 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import { authMiddleware } from "./middlewares/authMiddleware";
 import { SESSION_COOKIE } from "./lib/auth";
+import { getStripeSync } from "./stripeClient";
 
 const app: Express = express();
 const allowedOrigins = new Set(
@@ -60,6 +61,18 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors(corsOptions));
 app.use(cookieParser());
+app.post("/api/stripe/webhook", express.raw({ type: "application/json", limit: "1mb" }), async (req, res) => {
+  const signature = req.get("stripe-signature");
+  if (!signature || !Buffer.isBuffer(req.body)) {
+    res.status(400).json({ error: "Invalid webhook request" }); return;
+  }
+  try {
+    await (await getStripeSync()).processWebhook(req.body, signature);
+    res.json({ received: true });
+  } catch {
+    res.status(400).json({ error: "Webhook could not be verified or processed" });
+  }
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {

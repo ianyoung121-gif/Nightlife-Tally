@@ -15,6 +15,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { PatronProfile } from '@/pages/PatronProfile';
 import { Trending } from '@/pages/Trending';
 import { SpinTheNight } from '@/pages/SpinTheNight';
+import { PlaceDetail } from '@/pages/PlaceDetail';
 import NotFound from '@/pages/not-found';
 import { Privacy } from '@/pages/Privacy';
 import { Support } from '@/pages/Support';
@@ -30,6 +31,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/bars" component={BarBrowser} />
           <Route path="/bars/:barId" component={BarProfile} />
+          <Route path="/places/:providerId" component={PlaceDetail} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/profile" component={PatronProfile} />
           <Route path="/trending" component={Trending} />

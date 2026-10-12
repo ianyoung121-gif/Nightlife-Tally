@@ -1,15 +1,12 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, barFollowsTable } from "@workspace/db";
+import { db, barFollowsTable, barsTable } from "@workspace/db";
 import { requireSignedIn } from "../lib/authorization";
 
 const router = Router();
 
 async function followerCount(barId: number): Promise<number> {
-  const [{ count }] = await db
-    .select({ count: db.$count(barFollowsTable, eq(barFollowsTable.barId, barId)) })
-    .from(barFollowsTable);
-  return Number(count);
+  return db.$count(barFollowsTable, eq(barFollowsTable.barId, barId));
 }
 
 router.post("/bars/:barId/follow", async (req, res): Promise<void> => {
@@ -19,6 +16,8 @@ router.post("/bars/:barId/follow", async (req, res): Promise<void> => {
 
   const userId = requireSignedIn(req, res);
   if (userId === null) return;
+  const [bar] = await db.select({ id: barsTable.id }).from(barsTable).where(eq(barsTable.id, barId));
+  if (!bar) { res.status(404).json({ error: "Venue not found" }); return; }
 
   // upsert follow (ignore conflicts)
   const existing = await db

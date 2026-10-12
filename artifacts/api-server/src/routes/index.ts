@@ -9,6 +9,10 @@ import statsRouter from "./stats";
 import couponsRouter from "./coupons";
 import authRouter from "./auth";
 import venuesRouter from "./venues";
+import billingRouter from "./billing";
+import publicSpecialsRouter from "./publicSpecials";
+import placeFavoritesRouter from "./placeFavorites";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -17,6 +21,10 @@ router.use(authRouter);
 router.use(usersRouter);
 router.use(barsRouter);
 router.use(venuesRouter);
+router.use(billingRouter);
+router.use(publicSpecialsRouter);
+router.use(placeFavoritesRouter);
+router.use(notificationsRouter);
 router.use(drinksRouter);
 router.use(specialsRouter);
 router.use(followsRouter);

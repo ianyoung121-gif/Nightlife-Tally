@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, couponsTable, barsTable } from "@workspace/db";
-import { requireBarOwner, requireSignedIn } from "../lib/authorization";
+import { requireBarOwner, requireSignedIn, requirePaidBarOwner } from "../lib/authorization";
 
 const router = Router();
 
@@ -31,14 +31,10 @@ router.post("/bars/:barId/coupons", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.barId) ? req.params.barId[0] : req.params.barId;
   const barId = parseInt(raw, 10);
   if (isNaN(barId)) { res.status(400).json({ error: "Invalid barId" }); return; }
-  if (!await requireBarOwner(req, res, barId)) return;
+  if (!await requirePaidBarOwner(req, res, barId)) return;
 
   const [bar] = await db.select().from(barsTable).where(eq(barsTable.id, barId));
   if (!bar) { res.status(404).json({ error: "Bar not found" }); return; }
-  if (!bar.subscriptionActive) {
-    res.status(403).json({ error: "Active subscription required to create coupons" });
-    return;
-  }
 
   const { title, description, discountType, discountValue, expiresAt, maxUses } = req.body;
   if (!title || !discountType) { res.status(400).json({ error: "title and discountType required" }); return; }

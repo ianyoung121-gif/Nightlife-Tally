@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { initializeStripe } from "./stripeClient";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,7 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+});
+initializeStripe().catch(() => {
+  logger.error("Stripe initialization failed; paid tools will remain unavailable until billing is configured.");
 });

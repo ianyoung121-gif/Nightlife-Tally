@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -19,7 +20,8 @@ import {
   SpaceMono_400Regular,
   SpaceMono_700Bold,
 } from '@expo-google-fonts/space-mono';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { notificationsSupported } from '@/lib/notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
@@ -35,6 +37,39 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  const handled = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!notificationsSupported()) return;
+    let remove: (() => void) | undefined;
+    let cancelled = false;
+    const open = (response: { notification: { request: { identifier: string; content: { data?: unknown } } } } | null) => {
+      try {
+        if (!response) return;
+        const id = response.notification.request.identifier;
+        if (handled.current === id) return;
+        const data = response.notification.request.content.data as { barId?: unknown } | undefined;
+        const barId = Number(data?.barId);
+        if (!Number.isInteger(barId) || barId <= 0) return;
+        handled.current = id;
+        routerRef.current.push({ pathname: '/bars/[barId]', params: { barId: String(barId) } });
+      } catch {}
+    };
+    void (async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+        if (cancelled) return;
+        const sub = Notifications.addNotificationResponseReceivedListener(open);
+        remove = () => sub.remove();
+        open(await Notifications.getLastNotificationResponseAsync());
+      } catch {}
+    })();
+    return () => { cancelled = true; remove?.(); };
+  }, []);
+
   return (
     <Stack
       screenOptions={{
@@ -47,6 +82,7 @@ function RootLayoutNav() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="bars/[barId]" options={{ title: 'Venue' }} />
+      <Stack.Screen name="places/[providerId]" options={{ title: 'Venue' }} />
     </Stack>
   );
 }
@@ -67,7 +103,9 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return null;
+  // Web can show system fallback fonts while custom assets load; keep the
+  // native splash behavior unchanged rather than leaving web preview blank.
+  if (!fontsLoaded && !fontError && Platform.OS !== 'web') return null;
 
   return (
     <SafeAreaProvider>

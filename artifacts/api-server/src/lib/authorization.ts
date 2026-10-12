@@ -1,6 +1,7 @@
 import { db, barsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
+import { getMembership } from "./membership";
 
 export function requireSignedIn(req: Request, res: Response): number | null {
   if (!req.isAuthenticated()) {
@@ -23,4 +24,20 @@ export async function requireBarOwner(req: Request, res: Response, barId: number
     return false;
   }
   return true;
+}
+
+export async function requirePaidBarOwner(req: Request, res: Response, barId: number): Promise<boolean> {
+  if (!await requireBarOwner(req, res, barId)) return false;
+  const userId = requireSignedIn(req, res);
+  if (userId === null) return false;
+  try {
+    if (!(await getMembership(barId, userId)).active) {
+      res.status(403).json({ error: "A $5/month owner membership is required for this tool." });
+      return false;
+    }
+    return true;
+  } catch {
+    res.status(503).json({ error: "Membership could not be verified. Please try again." });
+    return false;
+  }
 }

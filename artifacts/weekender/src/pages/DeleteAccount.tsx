@@ -6,7 +6,7 @@ export function DeleteAccount() {
   const { user, isLoading, login, deleteAccount } = useAuth();
 
   const removeAccount = async () => {
-    if (!window.confirm("Delete your Weekender account, saved follows, and every active session? This cannot be undone.")) return;
+    if (!window.confirm("Cancel your venue memberships and delete your Weekender account, saved favorites, and every active session? This cannot be undone.")) return;
     try {
       await deleteAccount();
       window.location.assign("/");
@@ -21,7 +21,7 @@ export function DeleteAccount() {
         <p className="font-mono text-xs uppercase tracking-[0.22em] text-destructive">Account deletion</p>
         <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">Delete your account.</h1>
         <p className="text-muted-foreground">
-          This permanently removes your Weekender account, saved follows, and all active sessions. Anonymous community tally totals are not linked to your account and remain as aggregate venue activity.
+          This permanently removes your Weekender account, saved favorites, notification registrations, and all active sessions. Any venue memberships are cancelled immediately. Public venue information and anonymous community tally totals remain available without being linked to your account.
         </p>
       </header>
 

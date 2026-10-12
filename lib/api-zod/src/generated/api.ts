@@ -8,6 +8,207 @@
 import * as zod from 'zod';
 
 
+export const GetEditorAccessResponse = zod.object({
+  "canCurate": zod.boolean()
+})
+
+
+export const ListPublicSpecialsQueryParams = zod.object({
+  "barId": zod.coerce.number().int().optional(),
+  "providerId": zod.coerce.string().optional()
+})
+
+export const ListPublicSpecialsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "barId": zod.number().int().nullish(),
+  "providerId": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "sourceUrl": zod.string(),
+  "checkedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+})
+export const ListPublicSpecialsResponse = zod.array(ListPublicSpecialsResponseItem)
+
+
+export const createPublicSpecialBodyTitleMax = 100;
+
+export const createPublicSpecialBodyDescriptionMax = 1000;
+
+
+
+export const CreatePublicSpecialBody = zod.object({
+  "barId": zod.number().int().optional(),
+  "providerId": zod.string().optional(),
+  "title": zod.string().max(createPublicSpecialBodyTitleMax),
+  "description": zod.string().max(createPublicSpecialBodyDescriptionMax),
+  "sourceUrl": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "confirmedChecked": zod.boolean()
+})
+
+export const CreatePublicSpecialResponse = zod.object({
+  "id": zod.number().int(),
+  "barId": zod.number().int().nullish(),
+  "providerId": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "sourceUrl": zod.string(),
+  "checkedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+export const DeletePublicSpecialParams = zod.object({
+  "specialId": zod.coerce.number().int()
+})
+
+export const DeletePublicSpecialResponse = zod.void()
+
+
+export const GetPublicVenueParams = zod.object({
+  "providerId": zod.coerce.string()
+})
+
+export const GetPublicVenueResponse = zod.object({
+  "providerId": zod.string(),
+  "name": zod.string(),
+  "address": zod.string().nullish(),
+  "websiteUri": zod.string().nullish(),
+  "googleMapsUri": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "hours": zod.array(zod.string()),
+  "businessStatus": zod.string().nullish()
+})
+
+
+export const GetPlaceFavoritesResponseItem = zod.object({
+  "providerId": zod.string()
+})
+export const GetPlaceFavoritesResponse = zod.array(GetPlaceFavoritesResponseItem)
+
+
+export const GetPlaceFavoriteStatusParams = zod.object({
+  "providerId": zod.coerce.string()
+})
+
+export const GetPlaceFavoriteStatusResponse = zod.object({
+  "favorited": zod.boolean()
+})
+
+
+export const SavePlaceFavoriteParams = zod.object({
+  "providerId": zod.coerce.string()
+})
+
+export const SavePlaceFavoriteResponse = zod.object({
+  "favorited": zod.boolean()
+})
+
+
+export const RemovePlaceFavoriteParams = zod.object({
+  "providerId": zod.coerce.string()
+})
+
+export const RemovePlaceFavoriteResponse = zod.object({
+  "favorited": zod.boolean()
+})
+
+
+export const GetVenueMembershipParams = zod.object({
+  "barId": zod.coerce.number().int()
+})
+
+export const GetVenueMembershipQueryParams = zod.object({
+  "checkoutSessionId": zod.coerce.string().optional()
+})
+
+export const GetVenueMembershipResponse = zod.object({
+  "active": zod.boolean(),
+  "monthlyPrice": zod.number(),
+  "currency": zod.string(),
+  "cancelAtPeriodEnd": zod.boolean()
+})
+
+
+export const StartVenueCheckoutParams = zod.object({
+  "barId": zod.coerce.number().int()
+})
+
+export const StartVenueCheckoutResponse = zod.object({
+  "url": zod.string()
+})
+
+
+export const OpenVenueBillingPortalParams = zod.object({
+  "barId": zod.coerce.number().int()
+})
+
+export const OpenVenueBillingPortalResponse = zod.object({
+  "url": zod.string()
+})
+
+
+export const RegisterPushDeviceBody = zod.object({
+  "token": zod.string()
+})
+
+export const RegisterPushDeviceResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+export const RemovePushDeviceBody = zod.object({
+  "token": zod.string()
+})
+
+export const RemovePushDeviceResponse = zod.void()
+
+
+export const GetVenueNotificationPreferenceParams = zod.object({
+  "barId": zod.coerce.number().int()
+})
+
+export const GetVenueNotificationPreferenceResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+export const SetVenueNotificationPreferenceParams = zod.object({
+  "barId": zod.coerce.number().int()
+})
+
+export const SetVenueNotificationPreferenceBody = zod.object({
+  "enabled": zod.boolean()
+})
+
+export const SetVenueNotificationPreferenceResponse = zod.object({
+  "enabled": zod.boolean()
+})
+
+
+export const SendVenueNotificationParams = zod.object({
+  "barId": zod.coerce.number().int()
+})
+
+export const sendVenueNotificationBodyTitleMax = 80;
+
+export const sendVenueNotificationBodyBodyMax = 240;
+
+
+
+export const SendVenueNotificationBody = zod.object({
+  "title": zod.string().max(sendVenueNotificationBodyTitleMax),
+  "body": zod.string().max(sendVenueNotificationBodyBodyMax)
+})
+
+export const SendVenueNotificationResponse = zod.object({
+  "accepted": zod.number().int(),
+  "failed": zod.number().int(),
+  "message": zod.string()
+})
+
+
 /**
  * @summary Health check
  */
@@ -90,7 +291,8 @@ export const GetUserFollowingResponse = zod.array(GetUserFollowingResponseItem)
 
 
 /**
- * @summary Get user recent drink tally activity
+ * @deprecated
+ * @summary Compatibility endpoint returns an empty list; profiles never expose drink histories
  */
 export const GetUserActivityParams = zod.object({
   "userId": zod.coerce.number()
@@ -149,8 +351,8 @@ export const CreateBarBody = zod.object({
   "coverImageUrl": zod.string().optional(),
   "ownerId": zod.number().optional(),
   "subscriptionActive": zod.boolean().optional(),
-  "latitude": zod.number().min(createBarBodyLatitudeMin).max(createBarBodyLatitudeMax),
-  "longitude": zod.number().min(createBarBodyLongitudeMin).max(createBarBodyLongitudeMax)
+  "latitude": zod.number().min(createBarBodyLatitudeMin).max(createBarBodyLatitudeMax).optional(),
+  "longitude": zod.number().min(createBarBodyLongitudeMin).max(createBarBodyLongitudeMax).optional()
 })
 
 export const CreateBarResponse = zod.object({

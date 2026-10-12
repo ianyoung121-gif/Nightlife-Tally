@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
 import * as oidc from "openid-client";
-import { barFollowsTable, db, usersTable } from "@workspace/db";
+import { barFollowsTable, barsTable, db, sessionsTable, talliesTable, usersTable } from "@workspace/db";
+import { cancelAccountMemberships } from "../lib/cancelAccountMemberships";
 import {
   clearSession,
   createSession,
@@ -159,10 +160,23 @@ router.delete("/auth/account", async (req, res): Promise<void> => {
   }
 
   const userId = req.user.id;
-  await db.transaction(async (tx) => {
-    await tx.delete(barFollowsTable).where(eq(barFollowsTable.userId, userId));
-    await tx.delete(usersTable).where(eq(usersTable.id, userId));
-  });
+  try {
+    await db.transaction(async (tx) => {
+      const [account] = await tx.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId)).for("update");
+      if (!account) return;
+      await cancelAccountMemberships(userId);
+      // Preserve public venues and community counts while removing any legacy
+      // account linkage. All new tallies already have a null userId.
+      await tx.update(talliesTable).set({ userId: null }).where(eq(talliesTable.userId, userId));
+      await tx.update(barsTable).set({ ownerId: null, subscriptionActive: false }).where(eq(barsTable.ownerId, userId));
+      await tx.delete(barFollowsTable).where(eq(barFollowsTable.userId, userId));
+      await tx.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
+      await tx.delete(usersTable).where(eq(usersTable.id, userId));
+    });
+  } catch {
+    res.status(503).json({ error: "Couldn't complete account deletion. Please retry; any completed membership cancellations remain in effect." });
+    return;
+  }
 
   res.clearCookie(SESSION_COOKIE, { path: "/" });
   res.json({ success: true });

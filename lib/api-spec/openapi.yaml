@@ -28,6 +28,119 @@ tags:
     description: Account session operations
 
 paths:
+  /me/editor-access:
+    get:
+      operationId: getEditorAccess
+      tags: [specials]
+      responses:
+        "200": { description: Editor access, content: { application/json: { schema: { type: object, required: [canCurate], properties: { canCurate: { type: boolean } } } } } }
+  /public-specials:
+    get:
+      operationId: listPublicSpecials
+      tags: [specials]
+      parameters:
+        - { name: barId, in: query, schema: { type: integer } }
+        - { name: providerId, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Checked unexpired public specials, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/PublicSpecial" } } } } }
+    post:
+      operationId: createPublicSpecial
+      tags: [specials]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CheckedSpecialInput" } } } }
+      responses:
+        "201": { description: Created by authorized editor, content: { application/json: { schema: { $ref: "#/components/schemas/PublicSpecial" } } } }
+  /public-specials/{specialId}:
+    delete:
+      operationId: deletePublicSpecial
+      tags: [specials]
+      parameters: [{ name: specialId, in: path, required: true, schema: { type: integer } }]
+      responses: { "204": { description: Deleted } }
+  /venues/{providerId}:
+    get:
+      operationId: getPublicVenue
+      tags: [bars]
+      parameters: [{ name: providerId, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Live Google details without ownership gate, content: { application/json: { schema: { $ref: "#/components/schemas/PublicVenue" } } } }
+  /me/place-favorites:
+    get:
+      operationId: getPlaceFavorites
+      tags: [follows]
+      responses:
+        "200": { description: Saved Google place identifiers, content: { application/json: { schema: { type: array, items: { type: object, required: [providerId], properties: { providerId: { type: string } } } } } } }
+  /venues/{providerId}/favorite:
+    parameters: [{ name: providerId, in: path, required: true, schema: { type: string } }]
+    get:
+      operationId: getPlaceFavoriteStatus
+      tags: [follows]
+      responses:
+        "200": { description: Favorite status, content: { application/json: { schema: { $ref: "#/components/schemas/PlaceFavoriteStatus" } } } }
+    post:
+      operationId: savePlaceFavorite
+      tags: [follows]
+      responses:
+        "200": { description: Saved to current account, content: { application/json: { schema: { $ref: "#/components/schemas/PlaceFavoriteStatus" } } } }
+    delete:
+      operationId: removePlaceFavorite
+      tags: [follows]
+      responses:
+        "200": { description: Removed from current account, content: { application/json: { schema: { $ref: "#/components/schemas/PlaceFavoriteStatus" } } } }
+  /bars/{barId}/membership:
+    get:
+      operationId: getVenueMembership
+      tags: [bars]
+      parameters:
+        - { name: barId, in: path, required: true, schema: { type: integer } }
+        - { name: checkoutSessionId, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Stripe-verified entitlement, content: { application/json: { schema: { type: object, required: [active, monthlyPrice, currency, cancelAtPeriodEnd], properties: { active: { type: boolean }, monthlyPrice: { type: number }, currency: { type: string }, cancelAtPeriodEnd: { type: boolean } } } } } }
+  /bars/{barId}/checkout:
+    post:
+      operationId: startVenueCheckout
+      tags: [bars]
+      parameters: [{ name: barId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        "200": { description: Five dollar monthly Stripe Checkout, content: { application/json: { schema: { $ref: "#/components/schemas/BillingRedirect" } } } }
+  /bars/{barId}/billing-portal:
+    post:
+      operationId: openVenueBillingPortal
+      tags: [bars]
+      parameters: [{ name: barId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        "200": { description: Billing management and cancellation, content: { application/json: { schema: { $ref: "#/components/schemas/BillingRedirect" } } } }
+  /me/push-device:
+    post:
+      operationId: registerPushDevice
+      tags: [follows]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PushDeviceInput" } } } }
+      responses:
+        "200": { description: Registered device, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreference" } } } }
+    delete:
+      operationId: removePushDevice
+      tags: [follows]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PushDeviceInput" } } } }
+      responses: { "204": { description: Device removed } }
+  /bars/{barId}/notification-preference:
+    parameters: [{ name: barId, in: path, required: true, schema: { type: integer } }]
+    get:
+      operationId: getVenueNotificationPreference
+      tags: [follows]
+      responses:
+        "200": { description: Explicit follower opt-in, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreference" } } } }
+    put:
+      operationId: setVenueNotificationPreference
+      tags: [follows]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreference" } } } }
+      responses:
+        "200": { description: Preference saved for current follower, content: { application/json: { schema: { $ref: "#/components/schemas/NotificationPreference" } } } }
+  /bars/{barId}/notifications:
+    post:
+      operationId: sendVenueNotification
+      tags: [bars]
+      parameters: [{ name: barId, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [title, body], properties: { title: { type: string, maxLength: 80 }, body: { type: string, maxLength: 240 } } } } } }
+      responses:
+        "200": { description: Expo submission results not guaranteed delivery, content: { application/json: { schema: { type: object, required: [accepted, failed, message], properties: { accepted: { type: integer }, failed: { type: integer }, message: { type: string } } } } } }
   /healthz:
     get:
       operationId: healthCheck
@@ -124,7 +237,8 @@ paths:
     get:
       operationId: getUserActivity
       tags: [users]
-      summary: Get user recent drink tally activity
+      deprecated: true
+      summary: Compatibility endpoint returns an empty list; profiles never expose drink histories
       parameters:
         - name: userId
           in: path
@@ -686,6 +800,57 @@ components:
       in: cookie
       name: weekender_session
   schemas:
+    NotificationPreference:
+      type: object
+      required: [enabled]
+      properties: { enabled: { type: boolean } }
+    PushDeviceInput:
+      type: object
+      required: [token]
+      properties: { token: { type: string } }
+    BillingRedirect:
+      type: object
+      required: [url]
+      properties: { url: { type: string } }
+    PlaceFavoriteStatus:
+      type: object
+      required: [favorited]
+      properties: { favorited: { type: boolean } }
+    PublicVenue:
+      type: object
+      required: [providerId, name, hours]
+      properties:
+        providerId: { type: string }
+        name: { type: string }
+        address: { type: [string, "null"] }
+        websiteUri: { type: [string, "null"] }
+        googleMapsUri: { type: [string, "null"] }
+        phone: { type: [string, "null"] }
+        hours: { type: array, items: { type: string } }
+        businessStatus: { type: [string, "null"] }
+    PublicSpecial:
+      type: object
+      required: [id, title, description, sourceUrl, checkedAt, expiresAt]
+      properties:
+        id: { type: integer }
+        barId: { type: [integer, "null"] }
+        providerId: { type: [string, "null"] }
+        title: { type: string }
+        description: { type: string }
+        sourceUrl: { type: string }
+        checkedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    CheckedSpecialInput:
+      type: object
+      required: [title, description, sourceUrl, expiresAt, confirmedChecked]
+      properties:
+        barId: { type: integer }
+        providerId: { type: string }
+        title: { type: string, maxLength: 100 }
+        description: { type: string, maxLength: 1000 }
+        sourceUrl: { type: string }
+        expiresAt: { type: string, format: date-time }
+        confirmedChecked: { type: boolean }
     HealthStatus:
       type: object
       properties:
@@ -891,8 +1056,6 @@ components:
           maximum: 180
       required:
         - name
-        - latitude
-        - longitude
 
     BarUpdate:
       type: object

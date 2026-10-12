@@ -50,13 +50,17 @@ export default defineConfig({
     output: {
       workspace: apiZodSrc,
       client: "zod",
+      indexFiles: false,
       target: "generated",
-      schemas: { path: "generated/types", type: "typescript" },
+      // Validators live here; model types are exported by api-client-react.
+      // A second model barrel collides with operation validator names.
+      schemas: false,
       mode: "split",
       clean: true,
       prettier: true,
       override: {
         zod: {
+          version: 3,
           coerce: {
             query: ['boolean', 'number', 'string'],
             param: ['boolean', 'number', 'string'],

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq, like, desc } from "drizzle-orm";
 import { db, barsTable, drinksTable, barFollowsTable } from "@workspace/db";
 import { requireBarOwner, requireSignedIn } from "../lib/authorization";
+import { getMembership } from "../lib/membership";
 
 const router = Router();
 
@@ -45,13 +46,18 @@ function parseLocation(body: unknown): { location?: VerifiedLocation; error?: st
 }
 
 export async function barWithStats(bar: typeof barsTable.$inferSelect) {
-  const [{ count: followerCount }] = await db
-    .select({ count: db.$count(barFollowsTable, eq(barFollowsTable.barId, bar.id)) })
-    .from(barFollowsTable);
+  const followerCount = await db.$count(barFollowsTable, eq(barFollowsTable.barId, bar.id));
   const drinks = await db.select().from(drinksTable).where(eq(drinksTable.barId, bar.id));
   const totalTallies = drinks.reduce((s, d) => s + d.tallyCount, 0);
+  // Badges are displayed only for a verified entitlement. Public venue info
+  // remains available even during billing outages; paid writes fail closed.
+  let subscriptionActive = false;
+  if (bar.ownerId) {
+    try { subscriptionActive = (await getMembership(bar.id, bar.ownerId)).active; } catch {}
+  }
   return {
     ...bar,
+    subscriptionActive,
     followerCount: Number(followerCount),
     totalTallies,
     createdAt: bar.createdAt.toISOString(),
@@ -84,10 +90,6 @@ router.post("/bars", async (req, res): Promise<void> => {
   if (!name) { res.status(400).json({ error: "name required" }); return; }
   const { location, error } = parseLocation(req.body);
   if (error) { res.status(400).json({ error }); return; }
-  if (!location) {
-    res.status(400).json({ error: "Verified latitude and longitude are required when creating a bar." });
-    return;
-  }
   const [bar] = await db
     .insert(barsTable)
     .values({
@@ -98,7 +100,7 @@ router.post("/bars", async (req, res): Promise<void> => {
       ownerId,
       subscriptionActive: false,
       ...location,
-      locationVerifiedAt: new Date(),
+      locationVerifiedAt: location ? new Date() : null,
     })
     .returning();
   const result = await barWithStats(bar);

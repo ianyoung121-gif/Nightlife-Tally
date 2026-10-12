@@ -4,7 +4,9 @@
 - [Cookie-session CSRF boundary](cookie-session-csrf.md) — browser cookie mutations require trusted Origin validation; mobile Bearer sessions are intentionally exempt.
 - [Node integration-test child processes](node-integration-test-child-processes.md) — use a filesystem cwd and error-safe shutdown when spawning API servers from Node tests.
 - [Hybrid U.S. venue discovery](google-places-scope.md) — curated profiles come first; transient Google Places results fill nearby catalog gaps without storing location or provider data.
-- [Venue membership and privacy](venue-membership-privacy.md) — public venue info is not owner-gated; $5/month buys specials and follower push tools; patron profiles save favorites, not drinks.
+- [Venue rules and privacy](venue-membership-privacy.md) — public visibility, $5 owner tools, favorites-only profiles, automated Google ownership, and separate Spin sources.
 - [Expo Metro image-size compatibility](expo-metro-image-size.md) — retain the secure image-size v2 override with its package patch; Metro 0.83 still supplies asset file paths.
 - [Android icon rendering](android-icon-rendering.md) — mobile UI uses SVG paths for icons because Expo Go on Android rendered icon-font glyphs as missing-character boxes.
 - [EAS monorepo upload](eas-monorepo-upload.md) — when Git is unavailable, set EAS_PROJECT_ROOT to the pnpm workspace root so cloud builds receive the lockfile and catalog.
+- [Stripe managed proxy](stripe-managed-proxy.md) — newer connections work without exposed keys; sandbox success does not establish live payment readiness.
+- [API generator compatibility](codegen-compatibility.md) — explicit validator versions and separate model types avoid catalog autodetection and barrel collisions.

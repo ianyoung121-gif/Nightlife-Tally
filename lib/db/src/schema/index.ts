@@ -6,3 +6,4 @@ export * from "./barFollows";
 export * from "./specials";
 export * from "./coupons";
 export * from "./auth";
+export * from "./promotions";

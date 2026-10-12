@@ -3,6 +3,8 @@ import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { disableDeviceNotifications } from "@/lib/notifications";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -64,6 +66,7 @@ function apiBaseUrl(): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -92,12 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const result = await fetch(`${apiBaseUrl()}/api/auth/user`, { headers: { Authorization: `Bearer ${token}` } });
       const data = result.ok ? await result.json() as { user: AuthUser | null } : { user: null };
+      if (token !== await getStoredAuthToken()) return;
       if (!data.user) await clearStoredAuthToken();
+      // Me/favorites/preference query keys must not expose the previous account.
+      queryClient.clear();
       setUser(data.user);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => { void fetchUser(); }, [fetchUser]);
 
@@ -156,16 +162,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     const token = await getStoredAuthToken();
     try {
+      // Unregister while the session is still valid; a failure must not block logout.
+      try { await disableDeviceNotifications(); } catch {}
       if (token) await fetch(`${apiBaseUrl()}/api/mobile-auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
     } finally {
       await clearStoredAuthToken();
+      queryClient.clear();
       setUser(null);
     }
-  }, []);
+  }, [queryClient]);
 
   const deleteAccount = useCallback(async () => {
     const token = await getStoredAuthToken();
     if (!token) return;
+    try { await disableDeviceNotifications(); } catch {}
 
     const result = await fetch(`${apiBaseUrl()}/api/auth/account`, {
       method: "DELETE",
@@ -174,8 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!result.ok) throw new Error("Account deletion failed");
 
     await clearStoredAuthToken();
+    queryClient.clear();
     setUser(null);
-  }, []);
+  }, [queryClient]);
 
   return <AuthContext.Provider value={{ user, isLoading, isAuthenticated: Boolean(user), authError, login, logout, deleteAccount }}>{children}</AuthContext.Provider>;
 }

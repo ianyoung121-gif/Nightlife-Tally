@@ -36,6 +36,12 @@
       "expo-font",
       "expo-web-browser",
       [
+        "expo-notifications",
+        {
+          "color": "#0A0A0F"
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "The Weekender uses your location to show nearby bars and create local night-out plans."

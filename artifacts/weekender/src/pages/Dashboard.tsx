@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { 
   useGetBar, 
   useUpdateBar, 
@@ -16,6 +16,11 @@ import {
   getListBarDrinksQueryKey,
   getGetBarStatsQueryKey,
   getListBarCouponsQueryKey,
+  useGetVenueMembership,
+  getGetVenueMembershipQueryKey,
+  useStartVenueCheckout,
+  useOpenVenueBillingPortal,
+  useSendVenueNotification,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Flame, Star, Activity, Trash2, Plus, Users, Tag, Lock, Copy, Check, LocateFixed, MapPin, ShieldCheck } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@workspace/replit-auth-web";
+import { VenueSetupForm } from "@/components/VenueSetupForm";
+import { errMsg } from "@/lib-err";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DISCOUNT_TYPES = [
@@ -121,6 +128,47 @@ export function Dashboard() {
   const { data: specials } = useListBarSpecials(barId, { query: { enabled: barId > 0, queryKey: getListBarSpecialsQueryKey(barId) } });
   const { data: drinks } = useListBarDrinks(barId, { query: { enabled: barId > 0, queryKey: getListBarDrinksQueryKey(barId) } });
   const { data: coupons } = useListBarCoupons(barId, { query: { enabled: barId > 0, queryKey: getListBarCouponsQueryKey(barId) } });
+
+  const checkoutSessionId = useMemo(() => {
+    const q = new URLSearchParams(window.location.search);
+    return q.get("checkoutSessionId") || q.get("session_id") || undefined;
+  }, []);
+  const membershipParams = checkoutSessionId ? { checkoutSessionId } : undefined;
+  const membership = useGetVenueMembership(barId, membershipParams, {
+    query: { enabled: barId > 0 && Boolean(user), queryKey: getGetVenueMembershipQueryKey(barId, membershipParams) },
+  });
+  const isSubscribed = membership.data?.active === true;
+  const goTo = (url: string) => { window.location.assign(url); };
+  const checkout = useStartVenueCheckout({
+    mutation: {
+      onSuccess: (d) => goTo(d.url),
+      onError: (e) => toast({ title: errMsg(e, "Could not start checkout"), variant: "destructive" }),
+    },
+  });
+  const portal = useOpenVenueBillingPortal({
+    mutation: {
+      onSuccess: (d) => goTo(d.url),
+      onError: (e) => toast({ title: errMsg(e, "Could not open billing"), variant: "destructive" }),
+    },
+  });
+  const [notice, setNotice] = useState({ title: "", body: "" });
+  const [noticeResult, setNoticeResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const sendNotice = useSendVenueNotification({
+    mutation: {
+      onSuccess: (d) => {
+        setNoticeResult({ ok: true, text: `${d.message} Accepted by push service: ${d.accepted}. Failed: ${d.failed}. Accepted does not guarantee delivery.` });
+        setNotice({ title: "", body: "" });
+      },
+      onError: (e) => setNoticeResult({ ok: false, text: errMsg(e, "Notification was not sent. You can send one every 24 hours.") }),
+    },
+  });
+  const handleSendNotice = (e: React.FormEvent) => {
+    e.preventDefault();
+    setNoticeResult(null);
+    if (!notice.title.trim() || !notice.body.trim()) return;
+    if (!window.confirm("Send this to followers who opted in to alerts from your venue? You can send one every 24 hours.")) return;
+    sendNotice.mutate({ barId, data: { title: notice.title.trim(), body: notice.body.trim() } });
+  };
 
   const updateBar = useUpdateBar({
     mutation: {
@@ -271,7 +319,7 @@ export function Dashboard() {
 
   const handleCreateSpecial = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSpecial.title) return;
+    if (!newSpecial.title || !isSubscribed) return;
     createSpecial.mutate({ barId, data: newSpecial });
   };
 
@@ -283,7 +331,7 @@ export function Dashboard() {
 
   const handleCreateCoupon = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCoupon.title || !newCoupon.discountType) return;
+    if (!newCoupon.title || !newCoupon.discountType || !isSubscribed) return;
     createCoupon.mutate({
       barId,
       data: {
@@ -308,10 +356,9 @@ export function Dashboard() {
       <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
-  if (!barId) return <div className="p-8 text-center text-muted-foreground">No venue profile is linked to this account yet.</div>;
+  if (!barId) return <div className="py-8"><VenueSetupForm userId={user.id} /></div>;
   if (!bar) return <div className="p-8 text-center text-muted-foreground">Venue unavailable.</div>;
 
-  const isSubscribed = bar.subscriptionActive;
 
   return (
     <div className="space-y-8 pb-24 max-w-5xl mx-auto">
@@ -326,9 +373,41 @@ export function Dashboard() {
             : "bg-muted text-muted-foreground border-border text-xs font-mono px-3 py-1"
           }
         >
-          {isSubscribed ? "PRO SUBSCRIBER" : "FREE PLAN"}
+          {membership.isLoading ? "CHECKING" : isSubscribed ? "ACTIVE MEMBER" : "NO MEMBERSHIP"}
         </Badge>
       </div>
+
+      <Card className={isSubscribed ? "border-primary/30 bg-primary/5" : "border-border/50"}>
+        <CardHeader>
+          <CardTitle>Venue membership</CardTitle>
+          <CardDescription>$5/month per venue. Required to publish specials and coupons. Billing is handled by Stripe.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {checkoutSessionId && membership.isFetching && <p className="text-sm font-mono text-accent">Verifying your checkout with billing…</p>}
+          {checkoutSessionId && !membership.isFetching && !membership.isError && !isSubscribed && (
+            <p className="text-sm font-mono text-yellow-300">Checkout is still pending. Membership unlocks only once billing confirms it.</p>
+          )}
+          {membership.isError ? (
+            <p className="text-sm font-mono text-muted-foreground">Could not verify membership. <button className="text-accent underline" onClick={() => membership.refetch()}>Retry</button></p>
+          ) : membership.isLoading ? (
+            <p className="text-sm font-mono text-muted-foreground">Checking membership…</p>
+          ) : isSubscribed ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Active at ${membership.data?.monthlyPrice} {membership.data?.currency?.toUpperCase()} per month.
+                {membership.data?.cancelAtPeriodEnd && " Cancels at the end of the current period."}
+              </p>
+              <Button variant="outline" disabled={portal.isPending} onClick={() => portal.mutate({ barId })}>
+                {portal.isPending ? "Opening…" : "Manage billing or cancel"}
+              </Button>
+            </>
+          ) : (
+            <Button disabled={checkout.isPending} onClick={() => checkout.mutate({ barId })}>
+              {checkout.isPending ? "Redirecting to Stripe…" : "Subscribe for $5/month"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -477,10 +556,11 @@ export function Dashboard() {
               </div>
               <div className="pt-4 border-t border-border">
                 <h4 className="text-sm font-bold uppercase mb-3 text-primary">Add Special</h4>
+                {!isSubscribed && <p className="text-xs font-mono text-muted-foreground mb-3">An active membership is required to publish new specials. You can still delete existing ones.</p>}
                 <form onSubmit={handleCreateSpecial} className="space-y-3">
                   <Input placeholder="Special Title (e.g. $5 Margaritas)" value={newSpecial.title} onChange={e => setNewSpecial({...newSpecial, title: e.target.value})} className="bg-background" />
                   <Input placeholder="Description (Optional)" value={newSpecial.description} onChange={e => setNewSpecial({...newSpecial, description: e.target.value})} className="bg-background" />
-                  <Button type="submit" variant="secondary" disabled={createSpecial.isPending} className="w-full">
+                  <Button type="submit" variant="secondary" disabled={createSpecial.isPending || !isSubscribed} className="w-full">
                     <Plus className="w-4 h-4 mr-2" /> Publish Special
                   </Button>
                 </form>
@@ -491,6 +571,26 @@ export function Dashboard() {
 
         {/* Right Column */}
         <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Send a notification</CardTitle>
+              <CardDescription>Goes only to followers who explicitly opted in. One per 24 hours. Delivery today is through the Android app.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!isSubscribed ? (
+                <p className="text-sm text-muted-foreground font-mono">Requires an active membership.</p>
+              ) : (
+                <form onSubmit={handleSendNotice} className="space-y-3">
+                  <Input required maxLength={80} placeholder="Title" value={notice.title} onChange={e => setNotice({ ...notice, title: e.target.value })} className="bg-background" />
+                  <textarea required maxLength={240} placeholder="Message" value={notice.body} onChange={e => setNotice({ ...notice, body: e.target.value })} className="w-full min-h-[80px] p-3 rounded-md border border-input bg-background text-sm" />
+                  <p className="text-[10px] font-mono text-muted-foreground">{notice.title.length}/80 title · {notice.body.length}/240 message</p>
+                  {noticeResult && <p role="status" className={`text-xs font-mono ${noticeResult.ok ? "text-accent" : "text-destructive"}`}>{noticeResult.text}</p>}
+                  <Button type="submit" className="w-full" disabled={sendNotice.isPending}>{sendNotice.isPending ? "Sending…" : "Send to opted-in followers"}</Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Drink Menu */}
           <Card>
             <CardHeader>
@@ -542,7 +642,7 @@ export function Dashboard() {
                   <CardDescription>
                     {isSubscribed
                       ? "Create exclusive coupons for your followers and regulars."
-                      : "Upgrade to Pro to unlock coupon creation for your followers."}
+                      : "Activate a venue membership to unlock coupon creation for your followers."}
                   </CardDescription>
                 </div>
                 {isSubscribed && (
@@ -557,12 +657,12 @@ export function Dashboard() {
                     <Lock className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="font-bold text-white">Subscriber Feature</p>
+                    <p className="font-bold text-white">Membership required</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       For $5/month, create exclusive coupon codes your followers can show at the bar.
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Subscriptions are verified through billing before coupon tools are enabled.</p>
+                  <p className="text-xs text-muted-foreground">Membership is verified through billing before coupon tools are enabled.</p>
                 </div>
               ) : (
                 <div className="space-y-6">

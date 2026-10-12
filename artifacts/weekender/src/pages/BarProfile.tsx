@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import { 
   useGetBar, 
   useGetBarStats, 
@@ -16,12 +16,16 @@ import {
   getListBarDrinksQueryKey,
   getListBarSpecialsQueryKey,
   getListPatronCouponsQueryKey,
+  useGetVenueNotificationPreference,
+  useSetVenueNotificationPreference,
+  getGetVenueNotificationPreferenceQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@workspace/replit-auth-web";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { DrinkCard } from "@/components/DrinkCard";
+import { PublicSpecials } from "@/components/PublicSpecials";
 import { MapPin, Users, Flame, Star, Check, Tag, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
@@ -182,6 +186,14 @@ export function BarProfile() {
     }
   });
 
+  const prefKey = getGetVenueNotificationPreferenceQueryKey(barId);
+  const pref = useGetVenueNotificationPreference(barId, { query: { enabled: Boolean(barId && user), queryKey: prefKey } });
+  const setPref = useSetVenueNotificationPreference({
+    mutation: {
+      onSuccess: (d) => { queryClient.setQueryData(prefKey, d); queryClient.invalidateQueries({ queryKey: prefKey }); },
+      onError: (err: any) => toast({ title: err?.data?.error || "Could not update preference", variant: "destructive" }),
+    },
+  });
   const isFollowing = followStatus?.following || false;
 
   const toggleFollow = () => {
@@ -356,7 +368,7 @@ export function BarProfile() {
           <Card className="bg-secondary/5 border-secondary/20">
             <CardContent className="p-6">
               <h3 className="text-xl font-bold uppercase tracking-tight text-white mb-4 flex items-center">
-                <Flame className="w-5 h-5 mr-2 text-secondary" /> Specials
+                <Flame className="w-5 h-5 mr-2 text-secondary" /> Owner-posted specials
               </h3>
               {loadingSpecials ? (
                 <div className="space-y-3">
@@ -364,7 +376,7 @@ export function BarProfile() {
                   <Skeleton className="h-16 w-full" />
                 </div>
               ) : !specials || specials.length === 0 ? (
-                <p className="text-sm text-muted-foreground font-mono">No specials active right now.</p>
+                <p className="text-sm text-muted-foreground font-mono">No owner-posted specials right now.</p>
               ) : (
                 <div className="space-y-4">
                   {specials.map(special => (
@@ -385,6 +397,39 @@ export function BarProfile() {
               )}
             </CardContent>
           </Card>
+
+          {user && isFollowing && (
+            <Card className="bg-card border-border/50">
+              <CardContent className="p-6 space-y-3">
+                <h3 className="text-xl font-bold uppercase tracking-tight text-white">Venue alerts</h3>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Opt in to announcements from this venue. Alerts are received on the Android app; the website does not send browser notifications.
+                </p>
+                {pref.isError ? (
+                  <button className="text-accent underline text-sm font-mono" onClick={() => pref.refetch()}>Could not load. Retry</button>
+                ) : (
+                  <Button
+                    variant={pref.data?.enabled ? "secondary" : "outline"}
+                    className="w-full"
+                    disabled={pref.isLoading || setPref.isPending}
+                    onClick={() => setPref.mutate({ barId, data: { enabled: !pref.data?.enabled } })}
+                  >
+                    {pref.data?.enabled ? "Alerts on - turn off" : "Turn on alerts"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <Link
+            href={`/spin?barId=${barId}`}
+            data-testid="link-spin-specials"
+            className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-primary hover:underline"
+          >
+            <Tag className="w-3 h-3" /> Spin this venue's specials
+          </Link>
+
+          <PublicSpecials target={{ barId }} />
 
           {/* Weekly Tallies */}
           <Card className="bg-card border-border/50">

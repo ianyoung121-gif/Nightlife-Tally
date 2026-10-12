@@ -1,27 +1,16 @@
 import type { DiscoveredVenue } from "@workspace/api-client-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, MapPin, Navigation, Radar } from "lucide-react";
+import { Link } from "wouter";
+import { ChevronRight, MapPin, Navigation, Radar } from "lucide-react";
 
 type LiveVenueCardProps = {
   venue: DiscoveredVenue;
 };
 
-function mapsUrl(venue: DiscoveredVenue): string {
-  if (venue.googleMapsUri) return venue.googleMapsUri;
-  const query = encodeURIComponent([venue.name, venue.address].filter(Boolean).join(" "));
-  return `https://www.google.com/maps/search/?api=1&query=${query}`;
-}
-
 export function LiveVenueCard({ venue }: LiveVenueCardProps) {
   return (
-    <a
-      href={mapsUrl(venue)}
-      target="_blank"
-      rel="noreferrer"
-      className="block h-full"
-      aria-label={`Open ${venue.name} in Google Maps`}
-    >
+    <Link href={`/places/${encodeURIComponent(venue.providerId)}`} className="block h-full" aria-label={`View details for ${venue.name}`}>
       <Card className="group h-full border-dashed border-accent/35 bg-card/70 transition-all hover:-translate-y-1 hover:border-accent">
         <CardContent className="p-5 space-y-4">
           <div className="flex items-start justify-between gap-3">
@@ -29,7 +18,7 @@ export function LiveVenueCard({ venue }: LiveVenueCardProps) {
               <Radar className="w-3 h-3 mr-1" />
               LIVE NEARBY
             </Badge>
-            <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
           </div>
 
           <div>
@@ -51,9 +40,9 @@ export function LiveVenueCard({ venue }: LiveVenueCardProps) {
         </CardContent>
 
         <CardFooter className="border-t border-border/50 px-5 py-3 text-xs font-mono text-muted-foreground">
-          Open in Google Maps
+          View venue details
         </CardFooter>
       </Card>
-    </a>
+    </Link>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface WheelItem {
@@ -12,6 +12,7 @@ interface RouletteWheelProps {
   disabled?: boolean;
   spinLabel?: string;
   accentColor?: string;
+  onSpinningChange?: (spinning: boolean) => void;
 }
 
 const SEGMENT_COLORS = [
@@ -38,6 +39,9 @@ const SPIN_DURATION_MS = 4400;
 function toRad(deg: number) { return deg * Math.PI / 180; }
 
 function segmentPath(startDeg: number, endDeg: number, cx: number, cy: number, r: number) {
+  if (endDeg - startDeg >= 360) {
+    return `M ${cx} ${cy - r} a ${r} ${r} 0 1 0 0 ${2 * r} a ${r} ${r} 0 1 0 0 ${-2 * r} Z`;
+  }
   const x1 = cx + r * Math.sin(toRad(startDeg));
   const y1 = cy - r * Math.cos(toRad(startDeg));
   const x2 = cx + r * Math.sin(toRad(endDeg));
@@ -46,11 +50,24 @@ function segmentPath(startDeg: number, endDeg: number, cx: number, cy: number, r
   return `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
 }
 
-export function RouletteWheel({ items, onResult, disabled, spinLabel = "SPIN", accentColor = "#FF2D78" }: RouletteWheelProps) {
+export function RouletteWheel({ items, onResult, disabled, spinLabel = "SPIN", accentColor = "#FF2D78", onSpinningChange }: RouletteWheelProps) {
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [winner, setWinner] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const spinningRef = useRef(onSpinningChange);
+  spinningRef.current = onSpinningChange;
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    spinningRef.current?.(false);
+  }, []);
 
   const N = Math.max(items.length, 1);
   const segAngle = 360 / N;
@@ -71,12 +88,16 @@ export function RouletteWheel({ items, onResult, disabled, spinLabel = "SPIN", a
     const newRotation = base <= rotation + spins * 360 * 0.5 ? base + 360 : base;
 
     setIsSpinning(true);
+    onSpinningChange?.(true);
     setRotation(newRotation);
 
     timerRef.current = setTimeout(() => {
+      timerRef.current = null;
       setIsSpinning(false);
+      onSpinningChange?.(false);
       setWinner(winnerIdx);
-      onResult(winnerIdx, items[winnerIdx]);
+      const item = itemsRef.current[winnerIdx];
+      if (item) onResultRef.current(winnerIdx, item);
     }, SPIN_DURATION_MS);
   };
 

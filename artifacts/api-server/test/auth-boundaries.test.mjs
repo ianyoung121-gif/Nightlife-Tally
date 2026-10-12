@@ -404,6 +404,20 @@ test("ownership boundaries across bars, drinks, coupons, specials, follows", { t
     });
 
     // Seed bars for both owners so subsequent tests can use them
+    await t.test("new venue profiles do not require coordinates and cannot claim verified location", async () => {
+      const response = await asOwner1("POST", "/bars", {
+        name: `unlocated-fixture-${makeFixtureId()}`, address: "Fixture address", ownerId: owner2.userId,
+      });
+      assert.equal(response.status, 201);
+      const venue = await response.json();
+      allBarIds.push(venue.id);
+      assert.equal(venue.ownerId, owner1.userId);
+      assert.equal(venue.latitude, null);
+      assert.equal(venue.longitude, null);
+      assert.equal(venue.locationVerifiedAt, null);
+      assert.equal(venue.subscriptionActive, false);
+      assert.equal((await asOwner1("POST", "/bars", { name: "Partial coordinates", latitude: 40 })).status, 400);
+    });
     const bar1 = await seedBar(pool, owner1.userId, { subscriptionActive: true });
     const bar2 = await seedBar(pool, owner2.userId, { subscriptionActive: true });
     allBarIds.push(bar1, bar2);
@@ -522,9 +536,83 @@ test("ownership boundaries across bars, drinks, coupons, specials, follows", { t
       assert.equal(res.status, 403);
     });
 
-    await t.test("POST /bars/:barId/specials: owner can create a special", async () => {
+    await t.test("POST /bars/:barId/specials: legacy subscription flag cannot unlock a paid special", async () => {
       const res = await asOwner1("POST", `/bars/${bar1}/specials`, { title: `Special ${makeFixtureId()}` });
-      assert.equal(res.status, 201);
+      assert.equal(res.status, 403);
+    });
+
+    await t.test("unpaid owner cannot create coupons or broadcast alerts", async () => {
+      assert.equal((await asOwner1("POST", `/bars/${bar1}/coupons`, { title: "Unpaid", discountType: "percentage" })).status, 403);
+      assert.equal((await asOwner1("POST", `/bars/${bar1}/notifications`, { title: "Unpaid", body: "Test" })).status, 403);
+    });
+
+    await t.test("public info and checked specials do not require a claim or account", async () => {
+      assert.equal((await anon("GET", `/bars/${bar1}`)).status, 200);
+      const response = await anon("GET", `/public-specials?barId=${bar1}`);
+      assert.equal(response.status, 200);
+      assert.ok(Array.isArray(await response.json()));
+    });
+
+    await t.test("bar ownership does not grant editorial access to public specials", async () => {
+      const response = await asOwner1("POST", "/public-specials", {
+        barId: bar1, title: "Unchecked", description: "Not allowed",
+        sourceUrl: "https://example.invalid", expiresAt: new Date(Date.now() + 86400000).toISOString(), confirmedChecked: true,
+      });
+      assert.equal(response.status, 403);
+    });
+
+    await t.test("Google place favorites persist once and stay private to the signed-in account", async () => {
+      const placeId = `fixture_${makeFixtureId()}`;
+      assert.equal((await anon("POST", `/venues/${placeId}/favorite`)).status, 401);
+      assert.equal((await asOwner1("POST", `/venues/${placeId}/favorite`, { userId: owner2.userId })).status, 200);
+      assert.equal((await asOwner1("POST", `/venues/${placeId}/favorite`)).status, 200);
+      const own = await asOwner1("GET", "/me/place-favorites");
+      assert.equal((await own.json()).filter((f) => f.providerId === placeId).length, 1);
+      const other = await asOwner2("GET", "/me/place-favorites");
+      assert.equal((await other.json()).some((f) => f.providerId === placeId), false);
+      assert.equal((await asOwner2("DELETE", `/venues/${placeId}/favorite`)).status, 200);
+      assert.equal((await (await asOwner1("GET", `/venues/${placeId}/favorite`)).json()).favorited, true);
+      assert.equal((await asOwner1("DELETE", `/venues/${placeId}/favorite`)).status, 200);
+      assert.equal((await (await asOwner1("GET", `/venues/${placeId}/favorite`)).json()).favorited, false);
+    });
+
+    await t.test("profiles never return personal drink histories", async () => {
+      const response = await asOwner1("GET", `/users/${owner1.userId}/activity`);
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), []);
+    });
+
+    await t.test("only checked, HTTPS-sourced, unexpired public specials are published", async () => {
+      await pool.query("UPDATE users SET is_curator=true WHERE id=$1", [owner1.userId]);
+      const input = {
+        barId: bar1, title: "Fixture checked special", description: "Fixture description",
+        sourceUrl: "https://example.invalid/specials",
+        expiresAt: new Date(Date.now() + 86400000).toISOString(), confirmedChecked: true,
+      };
+      assert.equal((await asOwner1("POST", "/public-specials", { ...input, confirmedChecked: false })).status, 400);
+      assert.equal((await asOwner1("POST", "/public-specials", { ...input, sourceUrl: "http://example.invalid" })).status, 400);
+      assert.equal((await asOwner1("POST", "/public-specials", { ...input, expiresAt: new Date(Date.now() - 86400000).toISOString() })).status, 400);
+      const created = await asOwner1("POST", "/public-specials", input);
+      assert.equal(created.status, 201);
+      const special = await created.json();
+      const visible = await (await anon("GET", `/public-specials?barId=${bar1}`)).json();
+      assert.ok(visible.some((s) => s.id === special.id && s.sourceUrl === input.sourceUrl));
+      await pool.query("UPDATE public_specials SET expires_at=now()-interval '1 day' WHERE id=$1", [special.id]);
+      const expired = await (await anon("GET", `/public-specials?barId=${bar1}`)).json();
+      assert.equal(expired.some((s) => s.id === special.id), false);
+      assert.equal((await asOwner2("DELETE", `/public-specials/${special.id}`)).status, 403);
+      assert.equal((await asOwner1("DELETE", `/public-specials/${special.id}`)).status, 204);
+      await pool.query("UPDATE users SET is_curator=false WHERE id=$1", [owner1.userId]);
+    });
+
+    await t.test("notification opt-in requires a favorite and is not automatically enabled", async () => {
+      assert.equal((await asOwner1("PUT", `/bars/${bar2}/notification-preference`, { enabled: true })).status, 409);
+      assert.equal((await asOwner1("POST", `/bars/${bar2}/follow`)).status, 200);
+      assert.equal((await (await asOwner1("GET", `/bars/${bar2}/notification-preference`)).json()).enabled, false);
+      assert.equal((await (await asOwner1("PUT", `/bars/${bar2}/notification-preference`, { enabled: true })).json()).enabled, true);
+      assert.equal((await (await asOwner2("GET", `/bars/${bar2}/notification-preference`)).json()).enabled, false);
+      assert.equal((await asOwner1("DELETE", `/bars/${bar2}/follow`)).status, 200);
+      assert.equal((await (await asOwner1("GET", `/bars/${bar2}/notification-preference`)).json()).enabled, false);
     });
 
     const specialId = await seedSpecial(pool, bar1);
@@ -686,7 +774,7 @@ test("CSRF boundaries for unsafe browser-cookie requests", { timeout: 30_000 }, 
 
     // ── Trusted localhost Origin on cookie POST → passes CSRF, reaches handler ──
     await t.test("POST with cookie session and trusted localhost Origin → passes CSRF check", async () => {
-      const res = await fetch(`${baseUrl}/api/bars/${bar}/specials`, {
+      const res = await fetch(`${baseUrl}/api/bars/${bar}/follow`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -709,7 +797,7 @@ test("CSRF boundaries for unsafe browser-cookie requests", { timeout: 30_000 }, 
 
     // ── Bearer-authenticated POST is CSRF-exempt regardless of Origin ──
     await t.test("Bearer POST with no Origin → passes CSRF (mobile exempt)", async () => {
-      const res = await fetch(`${baseUrl}/api/bars/${bar}/specials`, {
+      const res = await fetch(`${baseUrl}/api/bars/${bar}/follow`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -723,7 +811,7 @@ test("CSRF boundaries for unsafe browser-cookie requests", { timeout: 30_000 }, 
     });
 
     await t.test("Bearer POST with untrusted Origin → passes CSRF (mobile exempt)", async () => {
-      const res = await fetch(`${baseUrl}/api/bars/${bar}/specials`, {
+      const res = await fetch(`${baseUrl}/api/bars/${bar}/follow`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

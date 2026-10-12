@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useListBars, useGetTrendingDrinks } from "@workspace/api-client-react";
+import { useListBars } from "@workspace/api-client-react";
 import { RouletteWheel } from "@/components/RouletteWheel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
+import { DrinkSourcePanel } from "@/components/DrinkSourcePanel";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, MapPin, Dices, RotateCcw, Shuffle, ArrowRight, Star, Heart, Navigation } from "lucide-react";
 import { useUserLocation, distanceMiles, hasVerifiedVenueLocation } from "@/hooks/useUserLocation";
@@ -103,31 +104,6 @@ function shuffle<T>(arr: T[]): T[] {
 function randomDare() { return DARES[Math.floor(Math.random() * DARES.length)]; }
 function randomDateDare() { return DATE_DARES[Math.floor(Math.random() * DATE_DARES.length)]; }
 function randomDinner() { return DINNER_VIBES[Math.floor(Math.random() * DINNER_VIBES.length)]; }
-
-// ─── Drink Result ──────────────────────────────────────────────────────────
-function DrinkResult({ drink }: { drink: { name: string; barName?: string | null; price?: string | null; description?: string | null; barId: number } }) {
-  return (
-    <motion.div
-      key={drink.name}
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      className="relative rounded-2xl border-2 border-primary/50 bg-primary/10 p-6 text-center overflow-hidden shadow-[0_0_30px_rgba(255,45,120,0.3)]"
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/5 pointer-events-none" />
-      <p className="text-xs font-mono text-primary uppercase tracking-widest mb-2">Tonight you're drinking…</p>
-      <h3 className="text-3xl font-black uppercase tracking-tighter text-white">{drink.name}</h3>
-      {drink.barName && (
-        <Link href={`/bars/${drink.barId}`}>
-          <p className="text-accent font-mono text-sm mt-2 hover:underline flex items-center justify-center gap-1">
-            <MapPin className="w-3 h-3" /> @ {drink.barName}
-          </p>
-        </Link>
-      )}
-      {drink.price && <p className="text-muted-foreground text-sm mt-1 font-mono">{drink.price}</p>}
-      {drink.description && <p className="text-muted-foreground text-xs mt-2 leading-relaxed">{drink.description}</p>}
-    </motion.div>
-  );
-}
 
 // ─── Bar Result ────────────────────────────────────────────────────────────
 function BarResult({ bar }: { bar: { id: number; name: string; address?: string | null; description?: string | null; subscriptionActive?: boolean } }) {
@@ -575,23 +551,22 @@ type TabId = (typeof TABS)[number]["id"];
 
 export function SpinTheNight() {
   const [activeTab, setActiveTab] = useState<TabId>("drink");
-  const [drinkResult, setDrinkResult] = useState<any>(null);
   const [barResult, setBarResult] = useState<any>(null);
   const [dare, setDare] = useState(() => randomDare());
 
-  const { data: drinks } = useGetTrendingDrinks();
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const ctxBarId = Number(params.get("barId"));
+  const ctxBar = Number.isInteger(ctxBarId) && ctxBarId > 0 ? ctxBarId : undefined;
+  const ctxProvider = params.get("providerId") || undefined;
   const { data: bars } = useListBars({});
   const { state: locState } = useUserLocation();
 
   const userLat = locState.status === "granted" ? locState.location.latitude : undefined;
   const userLng = locState.status === "granted" ? locState.location.longitude : undefined;
 
-  const drinkWheelItems = (drinks || []).slice(0, 12).map((d) => ({
-    label: d.name,
-    sublabel: d.barName || undefined,
-  }));
-
-  const barWheelItems = (bars || []).slice(0, 12).map((b) => ({
+  const barPool = (bars || []).slice(0, 12);
+  const barWheelItems = barPool.map((b) => ({
     label: b.name,
     sublabel: b.address || undefined,
   }));
@@ -650,24 +625,7 @@ export function SpinTheNight() {
           {/* ── Drink Tab ── */}
           {activeTab === "drink" && (
             <>
-              {drinkWheelItems.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground font-mono">
-                  No drinks found. Add some from the Dashboard first.
-                </div>
-              ) : (
-                <RouletteWheel
-                  items={drinkWheelItems}
-                  accentColor="#FF2D78"
-                  spinLabel="🍸 Spin for a Drink"
-                  onResult={(_, item) => {
-                    const drink = drinks?.find((d) => d.name === item.label);
-                    setDrinkResult(drink || { name: item.label, barId: 0 });
-                  }}
-                />
-              )}
-              <AnimatePresence>
-                {drinkResult && <DrinkResult drink={drinkResult} />}
-              </AnimatePresence>
+              <DrinkSourcePanel initialBarId={ctxBar} initialProviderId={ctxBar ? undefined : ctxProvider} />
             </>
           )}
 
@@ -681,11 +639,12 @@ export function SpinTheNight() {
               ) : (
                 <RouletteWheel
                   items={barWheelItems}
+                  key={barPool.map((b) => b.id).join(",")}
                   accentColor="#7B2FFF"
                   spinLabel="🏙️ Spin for a Bar"
-                  onResult={(_, item) => {
-                    const bar = bars?.find((b) => b.name === item.label);
-                    setBarResult(bar || { id: 0, name: item.label });
+                  onResult={(index) => {
+                    const bar = barPool[index];
+                    if (bar) setBarResult(bar);
                   }}
                 />
               )}
